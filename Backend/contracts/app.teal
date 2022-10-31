@@ -1,0 +1,799 @@
+#pragma version 7
+txn NumAppArgs
+int 0
+==
+bnz main_l26
+txna ApplicationArgs 0
+method "initiliaze_game_params(uint64,uint64,uint64,uint64)void"
+==
+bnz main_l25
+txna ApplicationArgs 0
+method "get_game_params()(uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64)"
+==
+bnz main_l24
+txna ApplicationArgs 0
+method "enter_game(uint64,pay)void"
+==
+bnz main_l23
+txna ApplicationArgs 0
+method "change_guess_number(uint64)void"
+==
+bnz main_l22
+txna ApplicationArgs 0
+method "get_user_guess_number(account)uint64"
+==
+bnz main_l21
+txna ApplicationArgs 0
+method "generate_lucky_number(application)void"
+==
+bnz main_l20
+txna ApplicationArgs 0
+method "get_lucky_number()uint64"
+==
+bnz main_l19
+txna ApplicationArgs 0
+method "check_user_win_lottery(account)bool"
+==
+bnz main_l18
+txna ApplicationArgs 0
+method "reset_game_params()void"
+==
+bnz main_l17
+txna ApplicationArgs 0
+method "get_total_game_played()uint64"
+==
+bnz main_l16
+txna ApplicationArgs 0
+method "put_lucky_number()void"
+==
+bnz main_l15
+txna ApplicationArgs 0
+method "get_current_timestamp()uint64"
+==
+bnz main_l14
+err
+main_l14:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+callsub getcurrenttimestamp_10
+store 22
+byte 0x151f7c75
+load 22
+itob
+concat
+log
+int 1
+return
+main_l15:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+callsub putluckynumber_8
+int 1
+return
+main_l16:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+callsub gettotalgameplayed_9
+store 21
+byte 0x151f7c75
+load 21
+itob
+concat
+log
+int 1
+return
+main_l17:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+callsub resetgameparams_11
+int 1
+return
+main_l18:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+txna ApplicationArgs 1
+int 0
+getbyte
+callsub checkuserwinlottery_6
+store 18
+byte 0x151f7c75
+byte 0x00
+int 0
+load 18
+setbit
+concat
+log
+int 1
+return
+main_l19:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+callsub getluckynumber_7
+store 17
+byte 0x151f7c75
+load 17
+itob
+concat
+log
+int 1
+return
+main_l20:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+txna ApplicationArgs 1
+int 0
+getbyte
+callsub generateluckynumber_5
+int 1
+return
+main_l21:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+txna ApplicationArgs 1
+int 0
+getbyte
+callsub getuserguessnumber_4
+store 15
+byte 0x151f7c75
+load 15
+itob
+concat
+log
+int 1
+return
+main_l22:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+txna ApplicationArgs 1
+btoi
+callsub changeguessnumber_3
+int 1
+return
+main_l23:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+txn OnCompletion
+int OptIn
+==
+txn ApplicationID
+int 0
+!=
+&&
+||
+assert
+txna ApplicationArgs 1
+btoi
+store 13
+txn GroupIndex
+int 1
+-
+store 14
+load 14
+gtxns TypeEnum
+int pay
+==
+assert
+load 13
+load 14
+callsub entergame_2
+int 1
+return
+main_l24:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+callsub getgameparams_1
+store 4
+byte 0x151f7c75
+load 4
+concat
+log
+int 1
+return
+main_l25:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+txna ApplicationArgs 1
+btoi
+store 0
+txna ApplicationArgs 2
+btoi
+store 1
+txna ApplicationArgs 3
+btoi
+store 2
+txna ApplicationArgs 4
+btoi
+store 3
+load 0
+load 1
+load 2
+load 3
+callsub initiliazegameparams_0
+int 1
+return
+main_l26:
+txn OnCompletion
+int NoOp
+==
+bnz main_l36
+txn OnCompletion
+int OptIn
+==
+bnz main_l35
+txn OnCompletion
+int CloseOut
+==
+bnz main_l34
+txn OnCompletion
+int UpdateApplication
+==
+bnz main_l33
+txn OnCompletion
+int DeleteApplication
+==
+bnz main_l32
+err
+main_l32:
+txn ApplicationID
+int 0
+!=
+assert
+int 0
+return
+main_l33:
+txn ApplicationID
+int 0
+!=
+assert
+int 0
+return
+main_l34:
+txn ApplicationID
+int 0
+!=
+assert
+int 0
+return
+main_l35:
+txn ApplicationID
+int 0
+!=
+assert
+int 1
+return
+main_l36:
+txn ApplicationID
+int 0
+==
+assert
+byte "Total_Game_Count"
+int 0
+app_global_put
+byte "Ticketing_Start"
+int 0
+app_global_put
+byte "Ticketing_Duration"
+int 0
+app_global_put
+byte "Withdrawal_Start"
+int 0
+app_global_put
+byte "Lucky_Number"
+int 0
+app_global_put
+byte "Ticket_Fee"
+int 0
+app_global_put
+byte "Players_Ticket_Bought"
+int 0
+app_global_put
+byte "Players_Ticket_Checked"
+int 0
+app_global_put
+int 1
+return
+
+// initiliaze_game_params
+initiliazegameparams_0:
+store 26
+store 25
+store 24
+store 23
+txn Sender
+global CreatorAddress
+==
+byte "Ticketing_Start"
+app_global_get
+int 0
+==
+&&
+byte "Ticketing_Duration"
+app_global_get
+int 0
+==
+&&
+byte "Withdrawal_Start"
+app_global_get
+int 0
+==
+&&
+byte "Lucky_Number"
+app_global_get
+int 0
+==
+&&
+byte "Ticket_Fee"
+app_global_get
+int 0
+==
+&&
+load 23
+global LatestTimestamp
+int 180
++
+>
+&&
+load 24
+int 900
+>
+&&
+load 25
+int 1000000
+>=
+&&
+load 26
+load 23
+load 24
++
+int 900
++
+>
+&&
+assert
+byte "Ticketing_Start"
+load 23
+app_global_put
+byte "Ticketing_Duration"
+load 24
+app_global_put
+byte "Withdrawal_Start"
+load 26
+app_global_put
+byte "Ticket_Fee"
+load 25
+app_global_put
+retsub
+
+// get_game_params
+getgameparams_1:
+byte "Ticketing_Start"
+app_global_get
+store 5
+byte "Ticketing_Duration"
+app_global_get
+store 6
+byte "Withdrawal_Start"
+app_global_get
+store 7
+byte "Ticket_Fee"
+app_global_get
+store 8
+byte "Lucky_Number"
+app_global_get
+store 9
+byte "Players_Ticket_Bought"
+app_global_get
+store 10
+byte "Players_Ticket_Checked"
+app_global_get
+store 11
+byte "Total_Game_Count"
+app_global_get
+store 12
+load 5
+itob
+load 6
+itob
+concat
+load 7
+itob
+concat
+load 8
+itob
+concat
+load 9
+itob
+concat
+load 10
+itob
+concat
+load 11
+itob
+concat
+load 12
+itob
+concat
+retsub
+
+// enter_game
+entergame_2:
+store 28
+store 27
+load 27
+int 0
+>
+load 27
+int 10000
+<=
+&&
+load 28
+gtxns Receiver
+global CurrentApplicationAddress
+==
+&&
+load 28
+gtxns Sender
+txn Sender
+==
+&&
+load 28
+gtxns TypeEnum
+int pay
+==
+&&
+load 28
+gtxns Amount
+byte "Ticket_Fee"
+app_global_get
+==
+&&
+load 28
+gtxns CloseRemainderTo
+global ZeroAddress
+==
+&&
+global LatestTimestamp
+byte "Ticketing_Start"
+app_global_get
+byte "Ticketing_Duration"
+app_global_get
++
+<=
+&&
+assert
+txn Sender
+byte "checked"
+app_local_get
+bz entergame_2_l2
+txn Sender
+byte "checked"
+int 0
+app_local_put
+entergame_2_l2:
+txn Sender
+byte "guess_number"
+load 27
+app_local_put
+byte "Players_Ticket_Bought"
+byte "Players_Ticket_Bought"
+app_global_get
+int 1
++
+app_global_put
+retsub
+
+// change_guess_number
+changeguessnumber_3:
+store 29
+global LatestTimestamp
+byte "Ticketing_Start"
+app_global_get
+byte "Ticketing_Duration"
+app_global_get
++
+<=
+txn Sender
+byte "guess_number"
+app_local_get
+&&
+txn Sender
+byte "checked"
+app_local_get
+!
+&&
+assert
+txn Sender
+byte "guess_number"
+load 29
+app_local_put
+retsub
+
+// get_user_guess_number
+getuserguessnumber_4:
+store 16
+load 16
+txnas Accounts
+byte "guess_number"
+app_local_get
+assert
+load 16
+txnas Accounts
+byte "guess_number"
+app_local_get
+retsub
+
+// generate_lucky_number
+generateluckynumber_5:
+store 30
+global LatestTimestamp
+byte "Ticketing_Start"
+app_global_get
+byte "Ticketing_Duration"
+app_global_get
++
+>=
+byte "Lucky_Number"
+app_global_get
+int 0
+==
+&&
+assert
+itxn_begin
+int appl
+itxn_field TypeEnum
+load 30
+txnas Applications
+itxn_field ApplicationID
+int NoOp
+itxn_field OnCompletion
+int 5000000
+itxn_field Fee
+method "get(uint64,byte[])byte[]"
+itxn_field ApplicationArgs
+int 24908202
+global Round
+int 24908202
+-
++
+global Round
+int 24908202
+-
+int 8
+%
+-
+int 16
+-
+itob
+itxn_field ApplicationArgs
+txn Sender
+itxn_field ApplicationArgs
+itxn_submit
+byte "Lucky_Number"
+itxn LastLog
+extract 8 16
+btoi
+int 10000
+%
+int 1
++
+app_global_put
+int 1
+return
+
+// check_user_win_lottery
+checkuserwinlottery_6:
+store 19
+global LatestTimestamp
+byte "Withdrawal_Start"
+app_global_get
+>=
+load 19
+txnas Accounts
+byte "guess_number"
+app_local_get
+&&
+byte "Lucky_Number"
+app_global_get
+&&
+assert
+load 19
+txnas Accounts
+byte "checked"
+app_local_get
+bnz checkuserwinlottery_6_l4
+load 19
+txnas Accounts
+byte "guess_number"
+app_local_get
+byte "Lucky_Number"
+app_global_get
+==
+bnz checkuserwinlottery_6_l3
+checkuserwinlottery_6_l2:
+load 19
+txnas Accounts
+byte "checked"
+int 1
+app_local_put
+byte "Players_Ticket_Checked"
+byte "Players_Ticket_Checked"
+app_global_get
+int 1
++
+app_global_put
+load 19
+txnas Accounts
+byte "guess_number"
+app_local_get
+byte "Lucky_Number"
+app_global_get
+==
+!
+!
+store 20
+b checkuserwinlottery_6_l5
+checkuserwinlottery_6_l3:
+itxn_begin
+int pay
+itxn_field TypeEnum
+load 19
+txnas Accounts
+itxn_field Receiver
+byte "Ticket_Fee"
+app_global_get
+int 20
+*
+itxn_field Amount
+itxn_submit
+b checkuserwinlottery_6_l2
+checkuserwinlottery_6_l4:
+load 19
+txnas Accounts
+byte "guess_number"
+app_local_get
+byte "Lucky_Number"
+app_global_get
+==
+!
+!
+store 20
+checkuserwinlottery_6_l5:
+load 20
+retsub
+
+// get_lucky_number
+getluckynumber_7:
+byte "Lucky_Number"
+app_global_get
+retsub
+
+// put_lucky_number
+putluckynumber_8:
+byte "Lucky_Number"
+int 1000
+app_global_put
+retsub
+
+// get_total_game_played
+gettotalgameplayed_9:
+byte "Total_Game_Count"
+app_global_get
+retsub
+
+// get_current_timestamp
+getcurrenttimestamp_10:
+global LatestTimestamp
+retsub
+
+// reset_game_params
+resetgameparams_11:
+txn Sender
+global CreatorAddress
+==
+byte "Players_Ticket_Bought"
+app_global_get
+byte "Players_Ticket_Checked"
+app_global_get
+==
+&&
+assert
+byte "Total_Game_Count"
+byte "Total_Game_Count"
+app_global_get
+int 1
++
+app_global_put
+byte "Ticketing_Start"
+int 0
+app_global_put
+byte "Ticketing_Duration"
+int 0
+app_global_put
+byte "Withdrawal_Start"
+int 0
+app_global_put
+byte "Lucky_Number"
+int 0
+app_global_put
+byte "Ticket_Fee"
+int 0
+app_global_put
+byte "Players_Ticket_Bought"
+int 0
+app_global_put
+byte "Players_Ticket_Checked"
+int 0
+app_global_put
+int 1
+return

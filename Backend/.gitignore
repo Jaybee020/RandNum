@@ -1,0 +1,4 @@
+venv
+.env
+sandbox
+node_modules
