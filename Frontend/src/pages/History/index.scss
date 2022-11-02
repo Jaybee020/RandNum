@@ -1,0 +1,86 @@
+@import "../../styles/common/variables";
+@import "../../styles/common/mixin";
+@import "../../styles/common/partials";
+
+.history-page {
+  gap: 24px;
+  width: 100vw;
+  display: flex;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  padding: 24px 76px 40px;
+  overscroll-behavior: none;
+  @include tablet {
+    padding: 24px 30px 40px;
+  }
+  @include phone {
+    padding: 24px 24px 40px;
+  }
+
+  div,
+  button {
+    display: flex;
+  }
+
+  &__stats {
+    @extend %row-center-spaced;
+    gap: 30px;
+    flex-wrap: wrap;
+    padding-top: 26px;
+    padding-bottom: 36px;
+    font-family: $sansmed;
+    border-bottom: 1px solid rgba($color: #000000, $alpha: 0.08);
+
+    @include phone {
+      gap: 30px;
+      padding-top: 10px;
+      padding-bottom: 20px;
+    }
+  }
+
+  &__stat {
+    white-space: nowrap;
+    flex-direction: column;
+    .row {
+      gap: 6px;
+      align-items: center;
+      flex-direction: row;
+    }
+    svg {
+      fill: $sub;
+      height: 28px;
+      margin-top: 10px;
+      @include tablet {
+        height: 24px;
+      }
+      @include phone {
+        margin-top: 8px;
+        height: 22px;
+      }
+    }
+    p {
+      font-size: 16px;
+      color: rgba($color: $sub, $alpha: 0.5);
+      @include phone {
+        font-size: 14px;
+      }
+    }
+    h2 {
+      font-size: 36px;
+      margin-top: 10px;
+      @include tablet {
+        font-size: 30px;
+      }
+      @include phone {
+        font-size: 27px;
+      }
+    }
+
+    @include phone {
+      .row {
+        padding-left: 8px;
+      }
+    }
+  }
+}
