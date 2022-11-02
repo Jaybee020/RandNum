@@ -8,15 +8,19 @@ import {
   getGameParams,
   getGeneratedLuckyNumber,
   getUserGuessNumber,
+  initializeGameParams,
   resetGameParams,
 } from "../scripts/lottoCall";
 import {
   getAppCallTransactionsBetweenRounds,
+  getAppCallTransactionsFromRound,
   getAppPayTransactions,
   getAppPayTransactionsBetweenRounds,
+  getAppPayTransactionsFromRound,
   getTransaction,
   getUserTransactionstoApp,
   getUserTransactionstoAppBetweenRounds,
+  sleep,
 } from "../scripts/utils";
 import { GameParams, LottoModel } from "./models/lottoHistory";
 
@@ -35,6 +39,9 @@ interface Transaction {
   group?: string;
   "confirmed-round": number;
   "application-transaction": any;
+  "payment-transaction": {
+    receiver: string;
+  };
 }
 
 function parseLottoTxn(userTxns: Transaction[]) {
@@ -87,14 +94,16 @@ export async function getUserLottoHistory(
 
     const filtered = Promise.all(
       userInteractions.map(async (userInteraction) => {
-        const lottoId = (
-          await LottoModel.findOne({
-            roundEnd: { $gte: userInteraction.round },
-            roundStart: { $lte: userInteraction.round },
-          })
-        )?.lottoId;
+        const lottoDetails = await LottoModel.findOne({
+          roundEnd: { $gte: userInteraction.round },
+          roundStart: { $lte: userInteraction.round },
+        });
+
+        const lottoId = lottoDetails?.lottoId;
+        const lottoParams = lottoDetails?.gameParams;
         return {
           lottoId: lottoId ? lottoId : -1,
+          lottoParams: lottoParams,
           ...userInteraction,
         };
       })
@@ -130,6 +139,7 @@ export async function getUserHistoryByLottoId(
         return {
           ...userInteraction,
           lottoId: lottoId,
+          lottoParams: betHistoryDetails.gameParams,
         };
       });
     } else {
@@ -201,7 +211,14 @@ export async function getLottoPayTxn() {
     const receivedTxns = lottoTxns.filter(
       (lottoTxn) => lottoTxn.sender != appAddr
     );
-    const sentTxns = lottoTxns.filter((lottoTxn) => lottoTxn.sender == appAddr);
+    const sentTxns = lottoTxns
+      .filter((lottoTxn) => lottoTxn.sender == appAddr)
+      .map((lottoTxn) => {
+        return {
+          ...lottoTxn,
+          receiver: lottoTxn["payment-transaction"]["receiver"],
+        };
+      });
     return { receivedTxns: receivedTxns, sentTxns: sentTxns };
   } catch (error) {
     console.log(error);
@@ -234,7 +251,21 @@ export async function generateLuckyNumber() {
 
 export async function getCurrentGameParam() {
   const data = await getGameParams();
-  return data;
+  const gameParams: any = {};
+  const gameParamsKey = [
+    "ticketingStart",
+    "ticketingDuration",
+    "withdrawalStart",
+    "ticketFee",
+    "luckyNumber",
+    "playersTicketBought",
+    "playersTicketChecked",
+  ];
+  gameParamsKey.forEach(
+    //@ts-ignore
+    (gameParamKey, i) => (gameParams[gameParamKey] = Number(data.data[i]))
+  );
+  return gameParams;
 }
 
 export async function getGameParamsById(lottoId: number) {
@@ -292,9 +323,59 @@ export async function endCurrentAndCreateNewGame() {
     betHistoryDetails.txReference = data.txId;
     await betHistoryDetails.save();
   }
+  const ticketingStart = Math.round(Date.now() / 1000 + 200);
+  const ticketingDuration = 960;
+  const withdrawalStart = ticketingStart + 2000;
+  const ticketFee = 2e6;
+  const success = await initializeGameParams(
+    BigInt(ticketingStart),
+    ticketingDuration,
+    ticketFee,
+    BigInt(withdrawalStart)
+  );
   const newLotto = await LottoModel.create({
     lottoId: lottoId + 1,
     roundStart: resetStatus.confirmedRound,
   });
-  return newLotto;
+  return { newLottoDetails: newLotto, newGame: success };
+}
+
+export async function checkAllPlayersWin(lottoId: number) {
+  try {
+    const lotto = await LottoModel.findOne({ lottoId: lottoId });
+    if (lotto) {
+      const minRound = lotto.roundStart;
+      const playerPayTxns: Transaction[] = await getAppPayTransactionsFromRound(
+        appAddr,
+        minRound
+      );
+
+      const potentialPlayers = playerPayTxns
+        .filter((txn) => txn.group && txn.sender !== appAddr)
+        .map((txn) => txn.sender);
+
+      const playerCallTxns = await getAppCallTransactionsFromRound(
+        appId,
+        minRound
+      );
+      const checkedAddresses = parseLottoTxn(playerCallTxns)
+        .filter((parsedTxns) => parsedTxns.action == "check_user_win_lottery")
+        .map((parsedTxn) => parsedTxn.value);
+      const uncheckedAddresses = potentialPlayers.filter(
+        (player) => !checkedAddresses.includes(player)
+      );
+
+      const chunkSize = 5;
+      for (let i = 0; i < uncheckedAddresses.length; i += chunkSize) {
+        const chunk = uncheckedAddresses.slice(i, i + chunkSize);
+        // do whatever
+        await Promise.all(chunk.map((player) => checkUserWinLottery(player)));
+
+        await sleep(1);
+      }
+      return { status: true };
+    }
+  } catch (error) {
+    return { status: false };
+  }
 }

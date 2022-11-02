@@ -129,6 +129,8 @@ def change_guess_number(new_guess_number: abi.Uint64):
         Assert(
             # Assert we are still in ticketing phase and user has not been checked to prevent reusing previous ticket numbers
             And(
+                new_guess_number.get() > Int(0),
+                new_guess_number.get() <= Int(10000),
                 Global.latest_timestamp() <= current_ticketing_start+current_ticketing_duration,
                 App.localGet(Txn.sender(), Bytes(
                     "guess_number")),
@@ -155,7 +157,7 @@ def get_user_guess_number(player: abi.Account, *, output: abi.Uint64):
 
 @ABIReturnSubroutine
 def generate_lucky_number(application_Id: abi.Application):
-    # That block number is the reference point to get the most latest
+    # That block number is the reference point in order to get a valid block round to retrieve randomness from
     most_recent_saved_block_difference = Global.round()-Int(24908202)
     most_recent_saved_block_modulo = most_recent_saved_block_difference % Int(
         8)
@@ -174,14 +176,13 @@ def generate_lucky_number(application_Id: abi.Application):
                 TxnField.type_enum: TxnType.ApplicationCall,
                 TxnField.application_id:  application_Id.application_id(),
                 TxnField.on_completion: OnComplete.NoOp,
-                TxnField.fee: Int(5000000),
                 TxnField.application_args: [MethodSignature(
                     "get(uint64,byte[])byte[]"), Itob(most_recent_saved_block), Txn.sender()]  # adds the sender of the transaction has entropy
             }
         ),
         InnerTxnBuilder.Submit(),
         App.globalPut(Bytes("Lucky_Number"), (Btoi(
-            Extract(InnerTxn.last_log(), Int(12), Int(16))) % Int(10000)) + Int(1)),
+            Extract(InnerTxn.last_log(), Int(12), Int(4))) % Int(10000)) + Int(1)),
         Approve()
     )
 
@@ -207,7 +208,7 @@ def check_user_win_lottery(player: abi.Account, *, output: abi.Bool):
                 InnerTxnBuilder.SetFields({
                     TxnField.type_enum: TxnType.Payment,
                     TxnField.receiver: player.address(),
-                    TxnField.amount: current_ticket_fee*Int(20)}),
+                    TxnField.amount: current_ticket_fee*Int(10)}),
                 InnerTxnBuilder.Submit()
             ),
             App.localPut(player.address(), Bytes("checked"), Int(1)),
@@ -227,23 +228,10 @@ def get_lucky_number(*, output: abi.Uint64):
 
 
 @ABIReturnSubroutine
-def put_lucky_number():
-    return Seq(
-        App.globalPut(Bytes("Lucky_Number"), Int(1000))
-    )
-
-
-@ABIReturnSubroutine
 def get_total_game_played(*, output: abi.Uint64):
     return Seq(
         output.set(App.globalGet(Bytes("Total_Game_Count")))
     )
-
-
-@ABIReturnSubroutine
-def get_current_timestamp(*, output: abi.Uint64):
-    return Seq(
-        output.set(Global.latest_timestamp()))
 
 
 @ ABIReturnSubroutine
@@ -301,8 +289,6 @@ router.add_method_handler(get_lucky_number)
 router.add_method_handler(check_user_win_lottery)
 router.add_method_handler(reset_game_params)
 router.add_method_handler(get_total_game_played)
-router.add_method_handler(put_lucky_number)
-router.add_method_handler(get_current_timestamp)
 approval_program, clear_state_program, contract = router.compile_program(
     version=7, optimize=OptimizeOptions(scratch_slots=True)
 )

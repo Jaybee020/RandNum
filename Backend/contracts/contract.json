@@ -116,20 +116,6 @@
             "returns": {
                 "type": "uint64"
             }
-        },
-        {
-            "name": "put_lucky_number",
-            "args": [],
-            "returns": {
-                "type": "void"
-            }
-        },
-        {
-            "name": "get_current_timestamp",
-            "args": [],
-            "returns": {
-                "type": "uint64"
-            }
         }
     ],
     "networks": {}

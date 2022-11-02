@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAppCallTransactionsBetweenRounds = exports.getAppCallTransactions = exports.getAppPayTransactionsBetweenRounds = exports.getAppPayTransactions = exports.getUserTransactionstoAppBetweenRounds = exports.getUserTransactionstoApp = exports.checkUserOptedIn = exports.getTransaction = exports.sendAlgo = exports.encodeTxn = exports.compileTeal = exports.compilePyTeal = exports.submitTransaction = exports.getMethodByName = exports.algoIndexer = exports.algodClient = void 0;
+exports.getAppCallTransactionsFromRound = exports.getAppCallTransactionsBetweenRounds = exports.getAppCallTransactions = exports.getAppPayTransactionsFromRound = exports.getAppPayTransactionsBetweenRounds = exports.getAppPayTransactions = exports.getUserTransactionstoAppBetweenRounds = exports.getUserTransactionstoApp = exports.checkUserOptedIn = exports.getTransaction = exports.sendAlgo = exports.encodeTxn = exports.compileTeal = exports.compilePyTeal = exports.submitTransaction = exports.getMethodByName = exports.sleep = exports.algoIndexer = exports.algodClient = void 0;
 const algosdk_1 = require("algosdk");
 const algosdk_2 = require("algosdk");
 const child_process_1 = require("child_process");
@@ -32,6 +32,10 @@ exports.algoIndexer = new algosdk_2.Indexer(token, indexerServer, indexerPort);
 const buff = (0, fs_1.readFileSync)("contracts/contract.json");
 // Parse the json file into an object, pass it to create an ABIContract object
 const contract = new algosdk_2.ABIContract(JSON.parse(buff.toString()));
+function sleep(seconds) {
+    return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+}
+exports.sleep = sleep;
 // Utility function to return an ABIMethod by its name
 function getMethodByName(name) {
     const m = contract.methods.find((mt) => {
@@ -154,6 +158,7 @@ function getUserTransactionstoApp(userAddr, appId) {
             txLength = data["transactions"].length;
             //@ts-ignore
             txns.push(...data["transactions"]);
+            yield sleep(0.4);
         }
         return txns;
     });
@@ -186,6 +191,7 @@ function getUserTransactionstoAppBetweenRounds(userAddr, appId, minRound, maxRou
             txLength = data["transactions"].length;
             //@ts-ignore
             txns.push(...data["transactions"]);
+            yield sleep(0.4);
         }
         return txns;
     });
@@ -194,11 +200,7 @@ exports.getUserTransactionstoAppBetweenRounds = getUserTransactionstoAppBetweenR
 function getAppPayTransactions(appAddr) {
     return __awaiter(this, void 0, void 0, function* () {
         const txns = [];
-        var data = yield exports.algoIndexer
-            .searchForTransactions()
-            .address(appAddr)
-            .txType("appl")
-            .do();
+        var data = yield exports.algoIndexer.searchForTransactions().address(appAddr).do();
         var nextToken = data["next-token"];
         var txLength = data["transactions"].length;
         //@ts-ignore
@@ -213,6 +215,7 @@ function getAppPayTransactions(appAddr) {
             txLength = data["transactions"].length;
             //@ts-ignore
             txns.push(...data["transactions"]);
+            yield sleep(0.4);
         }
         return txns;
     });
@@ -243,11 +246,41 @@ function getAppPayTransactionsBetweenRounds(appAddr, minRound, maxRound) {
             txLength = data["transactions"].length;
             //@ts-ignore
             txns.push(...data["transactions"]);
+            yield sleep(0.4);
         }
         return txns;
     });
 }
 exports.getAppPayTransactionsBetweenRounds = getAppPayTransactionsBetweenRounds;
+function getAppPayTransactionsFromRound(appAddr, minRound) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const txns = [];
+        var data = yield exports.algoIndexer
+            .searchForTransactions()
+            .address(appAddr)
+            .minRound(minRound)
+            .do();
+        var nextToken = data["next-token"];
+        var txLength = data["transactions"].length;
+        //@ts-ignore
+        txns.push(...data["transactions"]);
+        while (txLength > 0) {
+            var data = yield exports.algoIndexer
+                .searchForTransactions()
+                .address(appAddr)
+                .nextToken(nextToken)
+                .minRound(minRound)
+                .do();
+            nextToken = data["next-token"];
+            txLength = data["transactions"].length;
+            //@ts-ignore
+            txns.push(...data["transactions"]);
+            yield sleep(0.4);
+        }
+        return txns;
+    });
+}
+exports.getAppPayTransactionsFromRound = getAppPayTransactionsFromRound;
 function getAppCallTransactions(appId) {
     return __awaiter(this, void 0, void 0, function* () {
         const txns = [];
@@ -269,6 +302,7 @@ function getAppCallTransactions(appId) {
             txLength = data["transactions"].length;
             //@ts-ignore
             txns.push(...data["transactions"]);
+            yield sleep(0.4);
         }
         return txns;
     });
@@ -299,8 +333,38 @@ function getAppCallTransactionsBetweenRounds(appId, minRound, maxRound) {
             txLength = data["transactions"].length;
             //@ts-ignore
             txns.push(...data["transactions"]);
+            yield sleep(0.4);
         }
         return txns;
     });
 }
 exports.getAppCallTransactionsBetweenRounds = getAppCallTransactionsBetweenRounds;
+function getAppCallTransactionsFromRound(appId, minRound) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const txns = [];
+        var data = yield exports.algoIndexer
+            .searchForTransactions()
+            .applicationID(appId)
+            .minRound(minRound)
+            .do();
+        var nextToken = data["next-token"];
+        var txLength = data["transactions"].length;
+        //@ts-ignore
+        txns.push(...data["transactions"]);
+        while (txLength > 0) {
+            var data = yield exports.algoIndexer
+                .searchForTransactions()
+                .applicationID(appId)
+                .nextToken(nextToken)
+                .minRound(minRound)
+                .do();
+            nextToken = data["next-token"];
+            txLength = data["transactions"].length;
+            //@ts-ignore
+            txns.push(...data["transactions"]);
+            yield sleep(0.4);
+        }
+        return txns;
+    });
+}
+exports.getAppCallTransactionsFromRound = getAppCallTransactionsFromRound;

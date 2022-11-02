@@ -115,7 +115,7 @@ function call(user, appId, method, methodArgs, OnComplete) {
         atc.addMethodCall(Object.assign(Object.assign({ method: (0, utils_1.getMethodByName)(method), methodArgs: methodArgs }, commonParams), { onComplete: OnComplete }));
         const result = yield atc.execute(utils_2.algodClient, 2);
         for (const idx in result.methodResults) {
-            console.log(result.methodResults[idx]);
+            // console.log(result.methodResults[idx]);
         }
         return result;
     });

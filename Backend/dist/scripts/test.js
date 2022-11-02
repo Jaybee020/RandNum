@@ -10,20 +10,23 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const helpers_1 = require("../server/helpers");
-const config_1 = require("./config");
-// (async () => {
-//   const ticketingStart = Math.round(Date.now() / 1000 + 200);
-//   const ticketingDuration = 960;
-//   const withdrawalStart = ticketingStart + 2000;
-//   const ticketFee = 2e6;
-//   const success = await initializeGameParams(
-//     BigInt(ticketingStart),
-//     ticketingDuration,
-//     ticketFee,
-//     BigInt(withdrawalStart)
-//   );
-//   console.log(success);
-// })();
+(() => __awaiter(void 0, void 0, void 0, function* () {
+    const data = yield (0, helpers_1.getLottoPayTxn)();
+    console.log(data === null || data === void 0 ? void 0 : data.receivedTxns);
+    // await sendAlgo(user, appAddr, 2e6);
+    // await call(user, appId, "generate_lucky_number", [randomnessBeaconContract]);
+    // const ticketingStart = Math.round(Date.now() / 1000 + 200);
+    // const ticketingDuration = 960;
+    // const withdrawalStart = ticketingStart + 2000;
+    // const ticketFee = 2e6;
+    // const success = await initializeGameParams(
+    //   BigInt(ticketingStart),
+    //   ticketingDuration,
+    //   ticketFee,
+    //   BigInt(withdrawalStart)
+    // );
+    // console.log(success);
+}))();
 // change method from optin to applcall
 // (async () => {
 //   // await sendAlgo(user, player.addr, 5e6);
@@ -94,8 +97,8 @@ const config_1 = require("./config");
     // console.log(decode.decodeMethod("5FeWqg=="));
     // const data = await getAppCallTransactions(appId);
     // console.log(data[data.length - 1]);
-    const userLottoInteractions = yield (0, helpers_1.getUserLottoHistory)(config_1.player.addr);
-    console.log(userLottoInteractions);
+    // const userLottoInteractions = await getUserLottoHistory(player.addr);
+    // console.log(userLottoInteractions);
     // const value = Buffer.from(
     //   data[data.length - 1]["application-transaction"]["application-args"][1],
     //   "base64"

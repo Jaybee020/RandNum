@@ -22,7 +22,7 @@ def generate_lucky_number(application_Id: abi.Application, *, output: abi.Uint64
             }
         ),
         InnerTxnBuilder.Submit(),
-        output.set(Btoi(Extract(InnerTxn.last_log(), Int(6), Int(16))))
+        output.set(Btoi(Extract(InnerTxn.last_log(), Int(12), Int(4))))
     )
 
 

@@ -46,6 +46,10 @@ const buff = readFileSync("contracts/contract.json");
 // Parse the json file into an object, pass it to create an ABIContract object
 const contract = new ABIContract(JSON.parse(buff.toString()));
 
+export function sleep(seconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+}
+
 // Utility function to return an ABIMethod by its name
 export function getMethodByName(name: string): ABIMethod {
   const m = contract.methods.find((mt: ABIMethod) => {
@@ -170,6 +174,7 @@ export async function getUserTransactionstoApp(
     txLength = data["transactions"].length;
     //@ts-ignore
     txns.push(...data["transactions"]);
+    await sleep(0.4);
   }
   return txns;
 }
@@ -206,17 +211,14 @@ export async function getUserTransactionstoAppBetweenRounds(
     txLength = data["transactions"].length;
     //@ts-ignore
     txns.push(...data["transactions"]);
+    await sleep(0.4);
   }
   return txns;
 }
 
 export async function getAppPayTransactions(appAddr: string) {
   const txns = [];
-  var data = await algoIndexer
-    .searchForTransactions()
-    .address(appAddr)
-    .txType("appl")
-    .do();
+  var data = await algoIndexer.searchForTransactions().address(appAddr).do();
   var nextToken = data["next-token"];
   var txLength = data["transactions"].length;
   //@ts-ignore
@@ -232,6 +234,7 @@ export async function getAppPayTransactions(appAddr: string) {
     txLength = data["transactions"].length;
     //@ts-ignore
     txns.push(...data["transactions"]);
+    await sleep(0.4);
   }
   return txns;
 }
@@ -265,6 +268,38 @@ export async function getAppPayTransactionsBetweenRounds(
     txLength = data["transactions"].length;
     //@ts-ignore
     txns.push(...data["transactions"]);
+    await sleep(0.4);
+  }
+  return txns;
+}
+
+export async function getAppPayTransactionsFromRound(
+  appAddr: string,
+  minRound: number
+) {
+  const txns = [];
+  var data = await algoIndexer
+    .searchForTransactions()
+    .address(appAddr)
+    .minRound(minRound)
+    .do();
+  var nextToken = data["next-token"];
+  var txLength = data["transactions"].length;
+  //@ts-ignore
+  txns.push(...data["transactions"]);
+
+  while (txLength > 0) {
+    var data = await algoIndexer
+      .searchForTransactions()
+      .address(appAddr)
+      .nextToken(nextToken)
+      .minRound(minRound)
+      .do();
+    nextToken = data["next-token"];
+    txLength = data["transactions"].length;
+    //@ts-ignore
+    txns.push(...data["transactions"]);
+    await sleep(0.4);
   }
   return txns;
 }
@@ -290,6 +325,7 @@ export async function getAppCallTransactions(appId: number) {
     txLength = data["transactions"].length;
     //@ts-ignore
     txns.push(...data["transactions"]);
+    await sleep(0.4);
   }
   return txns;
 }
@@ -323,6 +359,38 @@ export async function getAppCallTransactionsBetweenRounds(
     txLength = data["transactions"].length;
     //@ts-ignore
     txns.push(...data["transactions"]);
+    await sleep(0.4);
+  }
+  return txns;
+}
+
+export async function getAppCallTransactionsFromRound(
+  appId: number,
+  minRound: number
+) {
+  const txns = [];
+  var data = await algoIndexer
+    .searchForTransactions()
+    .applicationID(appId)
+    .minRound(minRound)
+    .do();
+  var nextToken = data["next-token"];
+  var txLength = data["transactions"].length;
+  //@ts-ignore
+  txns.push(...data["transactions"]);
+
+  while (txLength > 0) {
+    var data = await algoIndexer
+      .searchForTransactions()
+      .applicationID(appId)
+      .nextToken(nextToken)
+      .minRound(minRound)
+      .do();
+    nextToken = data["next-token"];
+    txLength = data["transactions"].length;
+    //@ts-ignore
+    txns.push(...data["transactions"]);
+    await sleep(0.4);
   }
   return txns;
 }

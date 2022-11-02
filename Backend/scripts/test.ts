@@ -5,8 +5,14 @@ import {
   secretKeyToMnemonic,
   waitForConfirmation,
 } from "algosdk";
-import { getUserLottoHistory } from "../server/helpers";
-import { appAddr, appId, player, user } from "./config";
+import { getLottoPayTxn, getUserLottoHistory } from "../server/helpers";
+import {
+  appAddr,
+  appId,
+  player,
+  randomnessBeaconContract,
+  user,
+} from "./config";
 import { LottoGameArgsDecoder } from "./decode";
 import {
   call,
@@ -31,19 +37,24 @@ import {
   sendAlgo,
 } from "./utils";
 
-// (async () => {
-//   const ticketingStart = Math.round(Date.now() / 1000 + 200);
-//   const ticketingDuration = 960;
-//   const withdrawalStart = ticketingStart + 2000;
-//   const ticketFee = 2e6;
-//   const success = await initializeGameParams(
-//     BigInt(ticketingStart),
-//     ticketingDuration,
-//     ticketFee,
-//     BigInt(withdrawalStart)
-//   );
-//   console.log(success);
-// })();
+(async () => {
+  const data = await getLottoPayTxn();
+  console.log(data?.receivedTxns);
+
+  // await sendAlgo(user, appAddr, 2e6);
+  // await call(user, appId, "generate_lucky_number", [randomnessBeaconContract]);
+  // const ticketingStart = Math.round(Date.now() / 1000 + 200);
+  // const ticketingDuration = 960;
+  // const withdrawalStart = ticketingStart + 2000;
+  // const ticketFee = 2e6;
+  // const success = await initializeGameParams(
+  //   BigInt(ticketingStart),
+  //   ticketingDuration,
+  //   ticketFee,
+  //   BigInt(withdrawalStart)
+  // );
+  // console.log(success);
+})();
 
 // change method from optin to applcall
 // (async () => {
@@ -117,8 +128,8 @@ import {
   // console.log(decode.decodeMethod("5FeWqg=="));
   // const data = await getAppCallTransactions(appId);
   // console.log(data[data.length - 1]);
-  const userLottoInteractions = await getUserLottoHistory(player.addr);
-  console.log(userLottoInteractions);
+  // const userLottoInteractions = await getUserLottoHistory(player.addr);
+  // console.log(userLottoInteractions);
   // const value = Buffer.from(
   //   data[data.length - 1]["application-transaction"]["application-args"][1],
   //   "base64"

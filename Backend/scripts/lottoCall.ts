@@ -137,7 +137,7 @@ export async function call(
   });
   const result = await atc.execute(algodClient, 2);
   for (const idx in result.methodResults) {
-    console.log(result.methodResults[idx]);
+    // console.log(result.methodResults[idx]);
   }
   return result;
 }
