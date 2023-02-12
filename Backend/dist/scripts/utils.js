@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAppCallTransactionsFromRound = exports.getAppCallTransactionsBetweenRounds = exports.getAppCallTransactions = exports.getAppPayTransactionsFromRound = exports.getAppPayTransactionsBetweenRounds = exports.getAppPayTransactions = exports.getUserTransactionstoAppBetweenRounds = exports.getUserTransactionstoApp = exports.checkUserOptedIn = exports.getTransaction = exports.sendAlgo = exports.encodeTxn = exports.compileTeal = exports.compilePyTeal = exports.submitTransaction = exports.getMethodByName = exports.sleep = exports.algoIndexer = exports.algodClient = void 0;
+exports.getAppCallTransactionsFromRound = exports.getAppCallTransactionsBetweenRounds = exports.getAppCallTransactions = exports.getAppPayTransactionsFromRound = exports.getAppPayTransactionsBetweenRounds = exports.getAppPayTransactions = exports.getUserTransactionstoAppBetweenRounds = exports.getUserTransactionstoApp = exports.checkUserOptedIn = exports.getTransactionReference = exports.sendAlgo = exports.encodeTxn = exports.compileTeal = exports.compilePyTeal = exports.submitTransaction = exports.getMethodByName = exports.cache = exports.sleep = exports.algoIndexer = exports.algodClient = void 0;
 const algosdk_1 = require("algosdk");
 const algosdk_2 = require("algosdk");
 const child_process_1 = require("child_process");
@@ -36,6 +36,21 @@ function sleep(seconds) {
     return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
 }
 exports.sleep = sleep;
+function cache(key, callbackInputs, expireIn, callbackFn, client) {
+    function run() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const cachedResponse = yield client.get(key);
+            if (cachedResponse) {
+                return JSON.parse(cachedResponse);
+            }
+            const result = yield callbackFn(...callbackInputs);
+            yield client.set(key, JSON.stringify(result), { EX: expireIn * 60 });
+            return result;
+        });
+    }
+    return run();
+}
+exports.cache = cache;
 // Utility function to return an ABIMethod by its name
 function getMethodByName(name) {
     const m = contract.methods.find((mt) => {
@@ -95,7 +110,8 @@ function sendAlgo(senderaccount, receiverAddr, amount) {
     });
 }
 exports.sendAlgo = sendAlgo;
-function getTransaction(txId) {
+//fetches and decodes the logs returned in the transaction Hash
+function getTransactionReference(txId) {
     return __awaiter(this, void 0, void 0, function* () {
         const transaction = yield exports.algoIndexer
             .lookupApplicationLogs(config_1.appId)
@@ -103,7 +119,9 @@ function getTransaction(txId) {
             .do();
         const encoded = transaction["log-data"][0]["logs"][0];
         var d = Buffer.from(encoded, "base64");
-        const tupleType = new algosdk_1.ABITupleType(Array(7).fill(new algosdk_1.ABIUintType(64)));
+        const returnedType = Array(12).fill(new algosdk_1.ABIUintType(64));
+        returnedType[9] = new algosdk_1.ABIAddressType();
+        const tupleType = new algosdk_1.ABITupleType(returnedType);
         return {
             decoded: tupleType.decode(new Uint8Array(d).slice(4)),
             caller: transaction["sender"],
@@ -111,7 +129,7 @@ function getTransaction(txId) {
         };
     });
 }
-exports.getTransaction = getTransaction;
+exports.getTransactionReference = getTransactionReference;
 function checkUserOptedIn(userAddr, appId) {
     return __awaiter(this, void 0, void 0, function* () {
         let response = [];

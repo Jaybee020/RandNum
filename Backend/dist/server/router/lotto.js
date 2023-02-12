@@ -18,6 +18,7 @@ const lottoCall_1 = require("../../scripts/lottoCall");
 const utils_1 = require("../../scripts/utils");
 const helpers_1 = require("../helpers");
 const lottoHistory_1 = require("../models/lottoHistory");
+const config_1 = require("../../scripts/config");
 const router = express_1.default.Router();
 router.get("/profile/:addr", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const playerAddr = req.params.addr;
@@ -103,7 +104,9 @@ router.get("/allLottoIdHistory", (req, res) => __awaiter(void 0, void 0, void 0,
 }));
 router.get("/currentGameParams", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const data = yield (0, helpers_1.getCurrentGameParam)();
+        const client = yield (0, config_1.initRedis)();
+        const key = "Current Game Parameter";
+        const data = yield (0, utils_1.cache)(key, [], 15, helpers_1.getCurrentGameParam, client);
         if (!data) {
             return res.status(400).send({
                 status: false,
@@ -146,6 +149,22 @@ router.post("/changePlayerGuessNumber", (req, res) => __awaiter(void 0, void 0, 
         });
     }
 }));
+router.post("/endCurrentAndCreateNewGame", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { ticketingStart, ticketingDuration, withdrawalStart, ticketFee, winMultiplier, maxPlayersAllowed, maxGuessNumber, gameMasterAddr, } = req.body;
+        const data = yield (0, helpers_1.endCurrentAndCreateNewGame)(ticketingStart, ticketingDuration, withdrawalStart, ticketFee, winMultiplier, maxPlayersAllowed, maxGuessNumber, gameMasterAddr);
+        return res.status(200).send({
+            status: true,
+            data,
+        });
+    }
+    catch (error) {
+        return res.status(400).send({
+            status: false,
+            data: "An error occured,check your parameters and retry",
+        });
+    }
+}));
 router.post("/enterCurrentGame", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { playerAddr, guessNumber } = req.body;
@@ -155,7 +174,8 @@ router.post("/enterCurrentGame", (req, res) => __awaiter(void 0, void 0, void 0,
                 message: "Please provide the required fields",
             });
         }
-        const data = yield (0, lottoCall_1.enterCurrentGame)(playerAddr, Number(guessNumber));
+        const ticketFee = (yield (0, helpers_1.getCurrentGameParam)()).ticketFee;
+        const data = yield (0, lottoCall_1.enterCurrentGame)(playerAddr, Number(guessNumber), ticketFee);
         return res.status(200).send({
             status: true,
             data: data.map(utils_1.encodeTxn),

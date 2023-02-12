@@ -42,6 +42,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const morgan_1 = __importDefault(require("morgan"));
 const dotenv = __importStar(require("dotenv"));
 const lotto_1 = require("./router/lotto");
+const gameManager_1 = require("../workers/gameManager");
 dotenv.config();
 const uri = String(process.env.MONGO_CONNECTION_STRING);
 const PORT = parseInt(process.env.PORT) || 8000;
@@ -66,5 +67,6 @@ app.get("/", function (req, res) {
 });
 app.use("/lottoGame", lotto_1.lottoRouter);
 app.listen(PORT, () => __awaiter(void 0, void 0, void 0, function* () {
+    gameManager_1.restartGame.start();
     console.log(`Listening on ${PORT}`);
 }));

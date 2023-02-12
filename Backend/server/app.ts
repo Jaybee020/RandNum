@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import morgan from "morgan";
 import * as dotenv from "dotenv";
 import { lottoRouter } from "./router/lotto";
+import { restartGame } from "../workers/gameManager";
 
 dotenv.config();
 const uri = String(process.env.MONGO_CONNECTION_STRING);
@@ -31,5 +32,6 @@ app.get("/", async function (req: Request, res: Response) {
 app.use("/lottoGame", lottoRouter);
 
 app.listen(PORT, async () => {
+  restartGame.start();
   console.log(`Listening on ${PORT}`);
 });

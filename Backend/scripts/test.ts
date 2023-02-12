@@ -6,13 +6,7 @@ import {
   waitForConfirmation,
 } from "algosdk";
 import { getLottoPayTxn, getUserLottoHistory } from "../server/helpers";
-import {
-  appAddr,
-  appId,
-  player,
-  randomnessBeaconContract,
-  user,
-} from "./config";
+import { appAddr, appId, randomnessBeaconContract, user } from "./config";
 import { LottoGameArgsDecoder } from "./decode";
 import {
   call,
@@ -30,7 +24,7 @@ import {
 import {
   algodClient,
   checkUserOptedIn,
-  getTransaction,
+  getTransactionReference,
   getAppCallTransactions,
   getUserTransactionstoApp,
   getUserTransactionstoAppBetweenRounds,
@@ -38,9 +32,8 @@ import {
 } from "./utils";
 
 (async () => {
-  const data = await getLottoPayTxn();
-  console.log(data?.receivedTxns);
-
+  // const data = await getLottoPayTxn();
+  // console.log(data?.receivedTxns);
   // await sendAlgo(user, appAddr, 2e6);
   // await call(user, appId, "generate_lucky_number", [randomnessBeaconContract]);
   // const ticketingStart = Math.round(Date.now() / 1000 + 200);
@@ -135,4 +128,5 @@ import {
   //   "base64"
   // ).toString();
   // console.log(value);
+  const appBalance = await algodClient.accountInformation(appAddr).do();
 })();

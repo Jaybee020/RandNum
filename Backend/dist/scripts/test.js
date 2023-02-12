@@ -9,10 +9,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const helpers_1 = require("../server/helpers");
+const config_1 = require("./config");
+const utils_1 = require("./utils");
 (() => __awaiter(void 0, void 0, void 0, function* () {
-    const data = yield (0, helpers_1.getLottoPayTxn)();
-    console.log(data === null || data === void 0 ? void 0 : data.receivedTxns);
+    // const data = await getLottoPayTxn();
+    // console.log(data?.receivedTxns);
     // await sendAlgo(user, appAddr, 2e6);
     // await call(user, appId, "generate_lucky_number", [randomnessBeaconContract]);
     // const ticketingStart = Math.round(Date.now() / 1000 + 200);
@@ -104,4 +105,5 @@ const helpers_1 = require("../server/helpers");
     //   "base64"
     // ).toString();
     // console.log(value);
+    const appBalance = yield utils_1.algodClient.accountInformation(config_1.appAddr).do();
 }))();

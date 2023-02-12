@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTimeStamp = exports.resetGameParams = exports.initializeGameParams = exports.getGeneratedLuckyNumber = exports.generateRandomNumber = exports.putLuckyNumber = exports.getUserGuessNumber = exports.checkUserWinLottery = exports.getGameParams = exports.getTotalGamesPlayed = exports.call = exports.changeCurrentGameNumber = exports.enterCurrentGame = void 0;
+exports.getTimeStamp = exports.resetGameParams = exports.initializeGameParams = exports.getMinAmountToStartGame = exports.getGeneratedLuckyNumber = exports.generateRandomNumber = exports.putLuckyNumber = exports.getUserGuessNumber = exports.checkUserWinLottery = exports.getGameParams = exports.getTotalGamesPlayed = exports.call = exports.changeCurrentGameNumber = exports.enterCurrentGame = void 0;
 const algosdk_1 = require("algosdk");
 const config_1 = require("./config");
 const utils_1 = require("./utils");
@@ -35,7 +35,7 @@ function OptIn(user, appId) {
         console.log("Opted-in to app-id:", transactionResponse["txn"]["txn"]["apid"]);
     });
 }
-function enterCurrentGame(playerAddr, guessNumber) {
+function enterCurrentGame(playerAddr, guessNumber, ticketFee) {
     return __awaiter(this, void 0, void 0, function* () {
         // string parameter
         const params = yield utils_2.algodClient.getTransactionParams().do();
@@ -43,7 +43,7 @@ function enterCurrentGame(playerAddr, guessNumber) {
             suggestedParams: params,
             from: playerAddr,
             to: config_1.appAddr,
-            amount: 2e6,
+            amount: ticketFee,
         });
         const abi = new algosdk_1.ABIMethod({
             name: "enter_game",
@@ -149,6 +149,9 @@ function getGameParams() {
                     status: true,
                 };
             }
+            return {
+                status: false,
+            };
         }
         catch (error) {
             return { status: false };
@@ -235,17 +238,84 @@ function getGeneratedLuckyNumber() {
     });
 }
 exports.getGeneratedLuckyNumber = getGeneratedLuckyNumber;
-function initializeGameParams(ticketingStart, ticketingDuration, ticketFee, withdrawalStart) {
+function getMinAmountToStartGame(ticketFee, win_multiplier, max_players_allowed) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const appAccountInfo = yield utils_2.algodClient.accountInformation(config_1.appAddr).do();
+        const appSpendableBalance = appAccountInfo.amount - appAccountInfo["min-balance"];
+        return (BigInt(win_multiplier) * BigInt(max_players_allowed) * BigInt(ticketFee) -
+            BigInt(appSpendableBalance));
+    });
+}
+exports.getMinAmountToStartGame = getMinAmountToStartGame;
+function initializeGameParams(gameMasterAddr, ticketingStart, ticketingDuration, ticketFee, win_multiplier, max_guess_number, max_players_allowed, lotteryContractAddr, withdrawalStart) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            yield call(config_1.user, config_1.appId, "initiliaze_game_params", [
-                ticketingStart,
-                ticketingDuration,
-                ticketFee,
-                withdrawalStart,
-            ]);
+            const params = yield utils_2.algodClient.getTransactionParams().do();
+            const minAmountToTransfer = yield getMinAmountToStartGame(ticketFee, win_multiplier, max_players_allowed);
+            const newGameTxn = (0, algosdk_1.makePaymentTxnWithSuggestedParamsFromObject)({
+                suggestedParams: params,
+                from: gameMasterAddr,
+                to: config_1.appAddr,
+                amount: minAmountToTransfer == BigInt(0) ? 1 : minAmountToTransfer,
+            });
+            const abi = new algosdk_1.ABIMethod({
+                name: "initiliaze_game_params",
+                args: [
+                    {
+                        type: "uint64",
+                        name: "ticketing_start",
+                    },
+                    {
+                        type: "uint64",
+                        name: "ticketing_duration",
+                    },
+                    {
+                        type: "uint64",
+                        name: "ticket_fee",
+                    },
+                    {
+                        type: "uint64",
+                        name: "withdrawal_start",
+                    },
+                    {
+                        type: "uint64",
+                        name: "win_multiplier",
+                    },
+                    {
+                        type: "uint64",
+                        name: "max_guess_number",
+                    },
+                    {
+                        type: "uint64",
+                        name: "max_players_allowed",
+                    },
+                    {
+                        type: "account",
+                        name: "lottery_account",
+                    },
+                    {
+                        type: "pay",
+                        name: "create_txn",
+                    },
+                ],
+                returns: {
+                    type: "void",
+                },
+            });
+            var applCallTxn = (0, algosdk_1.makeApplicationNoOpTxn)(gameMasterAddr, params, config_1.appId, [
+                abi.getSelector(),
+                (0, algosdk_1.encodeUint64)(ticketingStart),
+                (0, algosdk_1.encodeUint64)(ticketingDuration),
+                (0, algosdk_1.encodeUint64)(ticketFee),
+                (0, algosdk_1.encodeUint64)(withdrawalStart),
+                (0, algosdk_1.encodeUint64)(win_multiplier),
+                (0, algosdk_1.encodeUint64)(max_guess_number),
+                (0, algosdk_1.encodeUint64)(max_players_allowed),
+                (0, algosdk_1.encodeUint64)(1).subarray(7, 8),
+            ], [lotteryContractAddr]);
             return {
                 status: true,
+                txns: (0, algosdk_1.assignGroupID)([newGameTxn, applCallTxn]),
             };
         }
         catch (error) {
@@ -258,7 +328,7 @@ exports.initializeGameParams = initializeGameParams;
 function resetGameParams() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const data = yield call(config_1.user, config_1.appId, "get_total_game_played ", ["100"]);
+            const data = yield call(config_1.user, config_1.appId, "reset_game_params ", ["100"]);
             return {
                 status: true,
                 confirmedRound: data.confirmedRound,

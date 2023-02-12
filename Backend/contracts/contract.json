@@ -19,6 +19,26 @@
                 {
                     "type": "uint64",
                     "name": "withdrawal_start"
+                },
+                {
+                    "type": "uint64",
+                    "name": "win_multiplier"
+                },
+                {
+                    "type": "uint64",
+                    "name": "max_guess_number"
+                },
+                {
+                    "type": "uint64",
+                    "name": "max_players_allowed"
+                },
+                {
+                    "type": "account",
+                    "name": "lottery_account"
+                },
+                {
+                    "type": "pay",
+                    "name": "create_txn"
                 }
             ],
             "returns": {
@@ -29,7 +49,7 @@
             "name": "get_game_params",
             "args": [],
             "returns": {
-                "type": "(uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64)"
+                "type": "(uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64,address,uint64,uint64)"
             }
         },
         {

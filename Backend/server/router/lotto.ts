@@ -1,13 +1,12 @@
-import { encodeUnsignedTransaction } from "algosdk";
 import express, { Router, Request, Response } from "express";
 import {
   changeCurrentGameNumber,
   enterCurrentGame,
-  getGameParams,
 } from "../../scripts/lottoCall";
-import { encodeTxn } from "../../scripts/utils";
+import { cache, encodeTxn } from "../../scripts/utils";
 import {
   checkPlayerWinStatus,
+  endCurrentAndCreateNewGame,
   generateLuckyNumber,
   getCurrentGameParam,
   getCurrentGeneratedNumber,
@@ -19,7 +18,8 @@ import {
   getUserHistoryByLottoId,
   getUserLottoHistory,
 } from "../helpers";
-import { LottoModel } from "../models/lottoHistory";
+import { GameParams, LottoModel } from "../models/lottoHistory";
+import { initRedis } from "../../scripts/config";
 const router = express.Router();
 
 router.get("/profile/:addr", async (req: Request, res: Response) => {
@@ -112,7 +112,15 @@ router.get("/allLottoIdHistory", async (req: Request, res: Response) => {
 
 router.get("/currentGameParams", async (req: Request, res: Response) => {
   try {
-    const data = await getCurrentGameParam();
+    const client = await initRedis();
+    const key = "Current Game Parameter";
+    const data = await cache<GameParams>(
+      key,
+      [],
+      15,
+      getCurrentGameParam,
+      client
+    );
     if (!data) {
       return res.status(400).send({
         status: false,
@@ -157,6 +165,43 @@ router.post("/changePlayerGuessNumber", async (req: Request, res: Response) => {
   }
 });
 
+router.post(
+  "/endCurrentAndCreateNewGame",
+  async (req: Request, res: Response) => {
+    try {
+      const {
+        ticketingStart,
+        ticketingDuration,
+        withdrawalStart,
+        ticketFee,
+        winMultiplier,
+        maxPlayersAllowed,
+        maxGuessNumber,
+        gameMasterAddr,
+      } = req.body;
+      const data = await endCurrentAndCreateNewGame(
+        ticketingStart,
+        ticketingDuration,
+        withdrawalStart,
+        ticketFee,
+        winMultiplier,
+        maxPlayersAllowed,
+        maxGuessNumber,
+        gameMasterAddr
+      );
+      return res.status(200).send({
+        status: true,
+        data,
+      });
+    } catch (error) {
+      return res.status(400).send({
+        status: false,
+        data: "An error occured,check your parameters and retry",
+      });
+    }
+  }
+);
+
 router.post("/enterCurrentGame", async (req: Request, res: Response) => {
   try {
     const { playerAddr, guessNumber } = req.body;
@@ -166,7 +211,12 @@ router.post("/enterCurrentGame", async (req: Request, res: Response) => {
         message: "Please provide the required fields",
       });
     }
-    const data = await enterCurrentGame(playerAddr, Number(guessNumber));
+    const ticketFee = (await getCurrentGameParam()).ticketFee;
+    const data = await enterCurrentGame(
+      playerAddr,
+      Number(guessNumber),
+      ticketFee
+    );
     return res.status(200).send({
       status: true,
       data: data.map(encodeTxn),

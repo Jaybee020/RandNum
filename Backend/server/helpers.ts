@@ -1,5 +1,10 @@
-import { decodeAddress, decodeUint64, encodeAddress } from "algosdk";
-import { appAddr, appId, user } from "../scripts/config";
+import {
+  decodeAddress,
+  decodeUint64,
+  encodeAddress,
+  waitForConfirmation,
+} from "algosdk";
+import { appAddr, appId, initRedis, user } from "../scripts/config";
 import { LottoGameArgsDecoder } from "../scripts/decode";
 import {
   changeCurrentGameNumber,
@@ -12,12 +17,13 @@ import {
   resetGameParams,
 } from "../scripts/lottoCall";
 import {
+  algodClient,
   getAppCallTransactionsBetweenRounds,
   getAppCallTransactionsFromRound,
   getAppPayTransactions,
   getAppPayTransactionsBetweenRounds,
   getAppPayTransactionsFromRound,
-  getTransaction,
+  getTransactionReference,
   getUserTransactionstoApp,
   getUserTransactionstoAppBetweenRounds,
   sleep,
@@ -59,7 +65,7 @@ function parseLottoTxn(userTxns: Transaction[]) {
       var value;
       if (action == "check_user_win_lottery") {
         value =
-          userTxn["application-transaction"]["accounts"][0] ||
+          userTxn["application-transaction"]["accounts"][1] ||
           userTxn["sender"];
       } else {
         value = decodeUint64(
@@ -84,7 +90,7 @@ function parseLottoTxn(userTxns: Transaction[]) {
 
 export async function getUserLottoHistory(
   userAddr: string
-): Promise<UserBetDetail[] | undefined> {
+): Promise<UserBetDetail[]> {
   try {
     const userTxns: Transaction[] = await getUserTransactionstoApp(
       userAddr,
@@ -122,29 +128,29 @@ export async function getUserHistoryByLottoId(
 ): Promise<UserBetDetail[]> {
   try {
     const betHistoryDetails = await LottoModel.findOne({ lottoId: lottoId });
+    var lottoMinRound;
+    var lottoMaxRound;
+    var userTxns: Transaction[];
     if (betHistoryDetails) {
-      const lottoMinRound = betHistoryDetails.roundStart;
-      const lottoMaxRound = betHistoryDetails.roundEnd;
-      const userTxns: Transaction[] =
-        await getUserTransactionstoAppBetweenRounds(
-          userAddr,
-          appId,
-          lottoMinRound,
-          lottoMaxRound
-        );
-
-      const userInteractions = parseLottoTxn(userTxns);
-
-      return userInteractions.map((userInteraction) => {
-        return {
-          ...userInteraction,
-          lottoId: lottoId,
-          lottoParams: betHistoryDetails.gameParams,
-        };
-      });
+      lottoMinRound = betHistoryDetails.roundStart;
+      lottoMaxRound = betHistoryDetails.roundEnd;
+      userTxns = await getUserTransactionstoAppBetweenRounds(
+        userAddr,
+        appId,
+        lottoMinRound,
+        lottoMaxRound
+      );
     } else {
       return [];
     }
+    const userInteractions = parseLottoTxn(userTxns);
+    return userInteractions.map((userInteraction) => {
+      return {
+        ...userInteraction,
+        lottoId: lottoId,
+        lottoParams: betHistoryDetails?.gameParams,
+      };
+    });
   } catch (error) {
     console.log(error);
     return [];
@@ -198,10 +204,12 @@ export async function getLottoPayTxnById(lottoId: number) {
         (lottoTxn) => lottoTxn.sender == appAddr
       );
       return { receivedTxns: receivedTxns, sentTxns: sentTxns };
+    } else {
+      return { receivedTxns: [], sentTxns: [] };
     }
   } catch (error) {
     console.log(error);
-    return null;
+    return { receivedTxns: [], sentTxns: [] };
   }
 }
 
@@ -222,7 +230,7 @@ export async function getLottoPayTxn() {
     return { receivedTxns: receivedTxns, sentTxns: sentTxns };
   } catch (error) {
     console.log(error);
-    return null;
+    return { receivedTxns: [], sentTxns: [] };
   }
 }
 
@@ -251,7 +259,20 @@ export async function generateLuckyNumber() {
 
 export async function getCurrentGameParam() {
   const data = await getGameParams();
-  const gameParams: any = {};
+  const gameParams: GameParams = {
+    ticketingStart: 0,
+    ticketingDuration: 0,
+    withdrawalStart: 0,
+    ticketFee: 0,
+    luckyNumber: 0,
+    playersTicketBought: 0,
+    winMultiplier: 0,
+    maxGuessNumber: 0,
+    maxPlayersAllowed: 0,
+    gameMaster: "",
+    playersTicketChecked: 0,
+    totalGamePlayed: 0,
+  };
   const gameParamsKey = [
     "ticketingStart",
     "ticketingDuration",
@@ -259,11 +280,16 @@ export async function getCurrentGameParam() {
     "ticketFee",
     "luckyNumber",
     "playersTicketBought",
+    "winMultiplier",
+    "maxGuessNumber",
+    "maxPlayersAllowed",
+    "gameMaster",
     "playersTicketChecked",
+    "totalGamePlayed",
   ];
   gameParamsKey.forEach(
     //@ts-ignore
-    (gameParamKey, i) => (gameParams[gameParamKey] = Number(data.data[i]))
+    (gameParamKey, i) => (gameParams[gameParamKey] = data.data[i])
   );
   return gameParams;
 }
@@ -274,7 +300,7 @@ export async function getGameParamsById(lottoId: number) {
 }
 
 export async function decodeTxReference(txId: string) {
-  const data = await getTransaction(txId);
+  const data = await getTransactionReference(txId);
   return data;
 }
 
@@ -283,17 +309,26 @@ export async function checkPlayerWinStatus(playerAddr: string) {
   return data;
 }
 
-export async function endCurrentAndCreateNewGame() {
+export async function endCurrentAndCreateNewGame(
+  ticketingStart = Math.round(Date.now() / 1000 + 200),
+  ticketingDuration = 960,
+  withdrawalStart = ticketingStart + 2000,
+  ticketFee = 2e6,
+  winMultiplier = 10,
+  maxPlayersAllowed = 1000,
+  maxGuessNumber = 100000,
+  gameMasterAddr = user.addr
+) {
   const resetStatus = await resetGameParams();
   if (!resetStatus.status || !resetStatus.confirmedRound) {
-    return "Could not reset Game";
+    return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
   }
   const data = await getGameParams();
   if (!data?.status || !data.data) {
-    return "Could not fetch game Params to update";
+    return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
   }
   //@ts-ignore
-  const lottoId = Number(data.data[7]);
+  const lottoId = Number(data.data[10]);
   const gameParams: any = {};
   const gameParamsKey = [
     "ticketingStart",
@@ -302,7 +337,12 @@ export async function endCurrentAndCreateNewGame() {
     "ticketFee",
     "luckyNumber",
     "playersTicketBought",
+    "winMultiplier",
+    "maxGuessNumber",
+    "maxPlayersAllowed",
+    "gameMaster",
     "playersTicketChecked",
+    "totalGamePlayed",
   ];
   gameParamsKey.forEach(
     //@ts-ignore
@@ -323,16 +363,19 @@ export async function endCurrentAndCreateNewGame() {
     betHistoryDetails.txReference = data.txId;
     await betHistoryDetails.save();
   }
-  const ticketingStart = Math.round(Date.now() / 1000 + 200);
-  const ticketingDuration = 960;
-  const withdrawalStart = ticketingStart + 2000;
-  const ticketFee = 2e6;
+
   const success = await initializeGameParams(
+    gameMasterAddr,
     BigInt(ticketingStart),
     ticketingDuration,
     ticketFee,
+    winMultiplier,
+    maxGuessNumber,
+    maxPlayersAllowed,
+    appAddr,
     BigInt(withdrawalStart)
   );
+
   const newLotto = await LottoModel.create({
     lottoId: lottoId + 1,
     roundStart: resetStatus.confirmedRound,

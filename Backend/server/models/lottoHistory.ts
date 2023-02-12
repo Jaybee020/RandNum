@@ -6,8 +6,13 @@ export interface GameParams {
   withdrawalStart: number;
   ticketFee: number;
   luckyNumber: number;
+  winMultiplier: number;
+  maxPlayersAllowed: number;
+  maxGuessNumber: number;
+  gameMaster: string;
   playersTicketBought: number;
   playersTicketChecked: number;
+  totalGamePlayed: number;
 }
 
 export interface Lotto extends Document {

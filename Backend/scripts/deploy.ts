@@ -22,11 +22,11 @@ async function main() {
   // declare application state storage (immutable)
   let localInts = 1;
   let localBytes = 1;
-  let globalInts = 8;
-  let globalBytes = 0;
+  let globalInts = 11;
+  let globalBytes = 1;
   // get transaction params
   const params = await algodClient.getTransactionParams().do();
-  params.fee = 5000;
+  params.fee = 1000;
   params.flatFee = true;
 
   // create unsigned transaction

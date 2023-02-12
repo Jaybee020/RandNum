@@ -76,7 +76,3 @@ class LottoGameArgsDecoder {
     }
 }
 exports.LottoGameArgsDecoder = LottoGameArgsDecoder;
-// const decoder = new LottoGameArgsDecoder();
-// console.log(decoder.decodedMethods);
-// console.log(decoder.encodedMethods);
-// console.log(decoder.decodeMethod("XtYrJg=="));

@@ -1,4 +1,5 @@
 import {
+  ABIAddressType,
   ABITupleType,
   ABIUintType,
   Account,
@@ -48,6 +49,25 @@ const contract = new ABIContract(JSON.parse(buff.toString()));
 
 export function sleep(seconds: number) {
   return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+}
+
+export function cache<T>(
+  key: string,
+  callbackInputs: any[],
+  expireIn: number,
+  callbackFn: any,
+  client: any
+): Promise<T> {
+  async function run() {
+    const cachedResponse = await client.get(key);
+    if (cachedResponse) {
+      return JSON.parse(cachedResponse);
+    }
+    const result = await callbackFn(...callbackInputs);
+    await client.set(key, JSON.stringify(result), { EX: expireIn * 60 });
+    return result;
+  }
+  return run();
 }
 
 // Utility function to return an ABIMethod by its name
@@ -110,7 +130,8 @@ export async function sendAlgo(
   return txId;
 }
 
-export async function getTransaction(txId: string) {
+//fetches and decodes the logs returned in the transaction Hash
+export async function getTransactionReference(txId: string) {
   const transaction = await algoIndexer
     .lookupApplicationLogs(appId)
     .txid(txId)
@@ -118,7 +139,9 @@ export async function getTransaction(txId: string) {
 
   const encoded: string = transaction["log-data"][0]["logs"][0];
   var d = Buffer.from(encoded, "base64");
-  const tupleType = new ABITupleType(Array(7).fill(new ABIUintType(64)));
+  const returnedType = Array(12).fill(new ABIUintType(64));
+  returnedType[9] = new ABIAddressType();
+  const tupleType = new ABITupleType(returnedType);
   return {
     decoded: tupleType.decode(new Uint8Array(d).slice(4)),
     caller: transaction["sender"],

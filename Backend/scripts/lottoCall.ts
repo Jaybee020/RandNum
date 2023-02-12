@@ -13,6 +13,7 @@ import {
   makePaymentTxnWithSuggestedParamsFromObject,
   assignGroupID,
   ALGORAND_MIN_TX_FEE,
+  decodeAddress,
 } from "algosdk";
 import { appAddr, appId, randomnessBeaconContract, user } from "./config";
 import { algoIndexer, checkUserOptedIn, getMethodByName } from "./utils";
@@ -44,7 +45,8 @@ async function OptIn(user: Account, appId: number) {
 
 export async function enterCurrentGame(
   playerAddr: string,
-  guessNumber: number
+  guessNumber: number,
+  ticketFee: number | bigint
 ) {
   // string parameter
   const params = await algodClient.getTransactionParams().do();
@@ -52,7 +54,7 @@ export async function enterCurrentGame(
     suggestedParams: params,
     from: playerAddr,
     to: appAddr,
-    amount: 2e6,
+    amount: ticketFee,
   });
   const abi = new ABIMethod({
     name: "enter_game",
@@ -168,6 +170,9 @@ export async function getGameParams() {
         status: true,
       };
     }
+    return {
+      status: false,
+    };
   } catch (error) {
     return { status: false };
   }
@@ -237,21 +242,110 @@ export async function getGeneratedLuckyNumber() {
     return { status: false };
   }
 }
+
+export async function getMinAmountToStartGame(
+  ticketFee: number,
+  win_multiplier: number,
+  max_players_allowed: number | bigint
+) {
+  const appAccountInfo = await algodClient.accountInformation(appAddr).do();
+  const appSpendableBalance =
+    appAccountInfo.amount - appAccountInfo["min-balance"];
+
+  return (
+    BigInt(win_multiplier) * BigInt(max_players_allowed) * BigInt(ticketFee) -
+    BigInt(appSpendableBalance)
+  );
+}
+
 export async function initializeGameParams(
+  gameMasterAddr: string,
   ticketingStart: number | bigint,
   ticketingDuration: number,
   ticketFee: number,
+  win_multiplier: number,
+  max_guess_number: number | bigint,
+  max_players_allowed: number | bigint,
+  lotteryContractAddr: string,
   withdrawalStart: number | bigint
 ) {
   try {
-    await call(user, appId, "initiliaze_game_params", [
-      ticketingStart,
-      ticketingDuration,
+    const params = await algodClient.getTransactionParams().do();
+    const minAmountToTransfer = await getMinAmountToStartGame(
       ticketFee,
-      withdrawalStart,
-    ]);
+      win_multiplier,
+      max_players_allowed
+    );
+    const newGameTxn = makePaymentTxnWithSuggestedParamsFromObject({
+      suggestedParams: params,
+      from: gameMasterAddr,
+      to: appAddr,
+      amount: minAmountToTransfer == BigInt(0) ? 1 : minAmountToTransfer,
+    });
+    const abi = new ABIMethod({
+      name: "initiliaze_game_params",
+      args: [
+        {
+          type: "uint64",
+          name: "ticketing_start",
+        },
+        {
+          type: "uint64",
+          name: "ticketing_duration",
+        },
+        {
+          type: "uint64",
+          name: "ticket_fee",
+        },
+        {
+          type: "uint64",
+          name: "withdrawal_start",
+        },
+        {
+          type: "uint64",
+          name: "win_multiplier",
+        },
+        {
+          type: "uint64",
+          name: "max_guess_number",
+        },
+        {
+          type: "uint64",
+          name: "max_players_allowed",
+        },
+        {
+          type: "account",
+          name: "lottery_account",
+        },
+        {
+          type: "pay",
+          name: "create_txn",
+        },
+      ],
+      returns: {
+        type: "void",
+      },
+    });
+    var applCallTxn = makeApplicationNoOpTxn(
+      gameMasterAddr,
+      params,
+      appId,
+      [
+        abi.getSelector(),
+        encodeUint64(ticketingStart),
+        encodeUint64(ticketingDuration),
+        encodeUint64(ticketFee),
+        encodeUint64(withdrawalStart),
+        encodeUint64(win_multiplier),
+        encodeUint64(max_guess_number),
+        encodeUint64(max_players_allowed),
+        encodeUint64(1).subarray(7, 8),
+      ],
+      [lotteryContractAddr]
+    );
     return {
       status: true,
+      txns: assignGroupID([newGameTxn, applCallTxn]),
     };
   } catch (error) {
     console.log(error);
@@ -261,7 +355,7 @@ export async function initializeGameParams(
 
 export async function resetGameParams() {
   try {
-    const data = await call(user, appId, "get_total_game_played ", ["100"]);
+    const data = await call(user, appId, "reset_game_params ", ["100"]);
     return {
       status: true,
       confirmedRound: data.confirmedRound,

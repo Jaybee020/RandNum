@@ -8,6 +8,10 @@ current_ticketing_duration = App.globalGet(Bytes("Ticketing_Duration"))
 current_withdrawal_start = App.globalGet(Bytes("Withdrawal_Start"))
 current_lucky_number = App.globalGet(Bytes("Lucky_Number"))
 current_ticket_fee = App.globalGet(Bytes("Ticket_Fee"))
+current_win_multiplier = App.globalGet(Bytes("Win_Multiplier"))
+current_max_players_allowed = App.globalGet(Bytes("Max_Players_Allowed"))
+current_max_guess_number = App.globalGet(Bytes("Max_Guess_Number"))
+current_game_master = App.globalGet(Bytes("Game_Master"))
 current_players_ticket_bought = App.globalGet(Bytes("Players_Ticket_Bought"))
 current_players_ticket_checked = App.globalGet(Bytes("Players_Ticket_Checked"))
 current_total_game_played = App.globalGet(Bytes("Total_Game_Count"))
@@ -20,41 +24,67 @@ class Game_Params(abi.NamedTuple):
     ticket_fee: abi.Field[abi.Uint64]
     lucky_number: abi.Field[abi.Uint64]
     players_ticket_bought: abi.Field[abi.Uint64]
+    win_multiplier: abi.Field[abi.Uint64]
+    max_guess_number: abi.Field[abi.Uint64]
+    max_players_allowed: abi.Field[abi.Uint64]
+    game_master: abi.Field[abi.Address]
     players_ticket_checked: abi.Field[abi.Uint64]
     total_game_played: abi.Field[abi.Uint64]
 
 
-# store the deployer of the contract in global storage and initialize global vars
+# initialize global vars
 handle_Creation = Seq(
     App.globalPut(Bytes("Ticketing_Start"), Int(0)),
     App.globalPut(Bytes("Ticketing_Duration"), Int(0)),
     App.globalPut(Bytes("Withdrawal_Start"), Int(0)),
     App.globalPut(Bytes("Lucky_Number"), Int(0)),
     App.globalPut(Bytes("Ticket_Fee"), Int(0)),
+    App.globalPut(Bytes("Win_Multiplier"), Int(0)),
+    App.globalPut(Bytes("Max_Players_Allowed"), Int(0)),
+    App.globalPut(Bytes("Max_Guess_Number"), Int(0)),
     App.globalPut(Bytes("Players_Ticket_Bought"), Int(0)),
     App.globalPut(Bytes("Players_Ticket_Checked"), Int(0)),
+    App.globalPut(Bytes("Game_Master"), Global.zero_address()),
     Approve()
 )
 
 
+# To call this function,the new game master must send a transaction such that the
 @ABIReturnSubroutine
-def initiliaze_game_params(ticketing_start: abi.Uint64, ticketing_duration: abi.Uint64, ticket_fee: abi.Uint64, withdrawal_start: abi.Uint64):
+def initiliaze_game_params(ticketing_start: abi.Uint64, ticketing_duration: abi.Uint64, ticket_fee: abi.Uint64, withdrawal_start: abi.Uint64, win_multiplier: abi.Uint64, max_guess_number: abi.Uint64, max_players_allowed: abi.Uint64, lottery_account: abi.Account, create_txn: abi.PaymentTransaction):
     return Seq(
         Assert(
             And(
-                is_creator,
-                # Make sure function has not been called before
+                # Make sure lottery contract has been reset
                 current_ticketing_start == Int(0),
                 current_ticketing_duration == Int(0),
                 current_withdrawal_start == Int(0),
                 current_lucky_number == Int(0),
                 current_ticket_fee == Int(0),
+                current_max_players_allowed == Int(0),
+                current_win_multiplier == Int(0),
+                current_max_guess_number == Int(0),
+                current_game_master == Global.zero_address(),
+                lottery_account.address() == Global.current_application_address(),
+                create_txn.get().receiver() == Global.current_application_address(),
+                create_txn.get().sender() == Txn.sender(),
+                create_txn.get().type_enum() == TxnType.Payment,
+                # balance after this transaction is sufficient to pay out a scenario where all participants win the lottery
+                create_txn.get().amount()+Balance(lottery_account.address()) -
+                MinBalance(lottery_account.address())
+                > max_players_allowed.get() *
+                win_multiplier.get()*ticket_fee.get(),
                 # ticketing phase must start at least 3 minutes into the future
                 ticketing_start.get() > Global.latest_timestamp() + Int(180),
                 # ticketing phase must be for at least 15 minutes
                 ticketing_duration.get() > Int(900),
                 # ticketing_fee is greater than 1 algo
                 ticket_fee.get() >= Int(1000000),
+                # max guess number should be at least 100
+                max_guess_number.get() > Int(99),
+                max_players_allowed.get() > Int(0),
+                # win multiplier is greater than 1,
+                win_multiplier.get() > Int(1),
                 # withdrawal starts at least 15 mins after ticketing closed
                 withdrawal_start.get() > ticketing_start.get() + \
                 ticketing_duration.get() + Int(900)
@@ -65,6 +95,10 @@ def initiliaze_game_params(ticketing_start: abi.Uint64, ticketing_duration: abi.
         App.globalPut(Bytes("Ticketing_Duration"), ticketing_duration.get()),
         App.globalPut(Bytes("Withdrawal_Start"), withdrawal_start.get()),
         App.globalPut(Bytes("Ticket_Fee"), ticket_fee.get()),
+        App.globalPut(Bytes("Win_Multiplier"), win_multiplier.get()),
+        App.globalPut(Bytes("Max_Players_Allowed"), max_players_allowed.get()),
+        App.globalPut(Bytes("Max_Guess_Number"), max_guess_number.get()),
+        App.globalPut(Bytes("Game_Master"), Txn.sender()),
     )
 
 
@@ -77,6 +111,10 @@ def get_game_params(*, output: Game_Params):
     lucky_number = abi.make(abi.Uint64)
     players_ticket_bought = abi.make(abi.Uint64)
     players_ticket_checked = abi.make(abi.Uint64)
+    game_master = abi.make(abi.Address)
+    win_multiplier = abi.make(abi.Uint64)
+    max_guess_number = abi.make(abi.Uint64)
+    max_players_allowed = abi.make(abi.Uint64)
     total_game_played = abi.make(abi.Uint64)
 
     return Seq(
@@ -88,8 +126,12 @@ def get_game_params(*, output: Game_Params):
         players_ticket_bought.set(current_players_ticket_bought),
         players_ticket_checked.set(current_players_ticket_checked),
         total_game_played.set(current_total_game_played),
+        game_master.set(current_game_master),
+        win_multiplier.set(current_win_multiplier),
+        max_guess_number.set(current_max_guess_number),
+        max_players_allowed.set(current_max_players_allowed),
         output.set(ticketing_start, ticketing_duration,
-                   withdrawal_start, ticket_fee, lucky_number, players_ticket_bought, players_ticket_checked, total_game_played)
+                   withdrawal_start, ticket_fee, lucky_number, players_ticket_bought, win_multiplier, max_guess_number, max_players_allowed, game_master, players_ticket_checked, total_game_played)
     )
 
 
@@ -101,8 +143,9 @@ def enter_game(guess_number: abi.Uint64, ticket_txn: abi.PaymentTransaction):
 
             # Assert that the receiver of the transaction is the smart contract and amount paid is ticket fee and contract is in ticketing phase
             And(
+                current_players_ticket_bought < current_max_players_allowed,
                 guess_number.get() > Int(0),
-                guess_number.get() <= Int(10000),
+                guess_number.get() <= current_max_guess_number,
                 ticket_txn.get().receiver() == Global.current_application_address(),
                 ticket_txn.get().sender() == Txn.sender(),
                 ticket_txn.get().type_enum() == TxnType.Payment,
@@ -130,7 +173,7 @@ def change_guess_number(new_guess_number: abi.Uint64):
             # Assert we are still in ticketing phase and user has not been checked to prevent reusing previous ticket numbers
             And(
                 new_guess_number.get() > Int(0),
-                new_guess_number.get() <= Int(10000),
+                new_guess_number.get() <= current_max_guess_number,
                 Global.latest_timestamp() <= current_ticketing_start+current_ticketing_duration,
                 App.localGet(Txn.sender(), Bytes(
                     "guess_number")),
@@ -158,6 +201,7 @@ def get_user_guess_number(player: abi.Account, *, output: abi.Uint64):
 @ABIReturnSubroutine
 def generate_lucky_number(application_Id: abi.Application):
     # That block number is the reference point in order to get a valid block round to retrieve randomness from
+
     most_recent_saved_block_difference = Global.round()-Int(24908202)
     most_recent_saved_block_modulo = most_recent_saved_block_difference % Int(
         8)
@@ -166,6 +210,8 @@ def generate_lucky_number(application_Id: abi.Application):
     return Seq(
         Assert(
             And(
+                # make sure we are calling the right randomness beacon,#change value for mainnet/testnet
+                application_Id.application_id() == Int(110096026),
                 Global.latest_timestamp() >= current_ticketing_start+current_ticketing_duration,
                 current_lucky_number == Int(0)
             )
@@ -182,7 +228,7 @@ def generate_lucky_number(application_Id: abi.Application):
         ),
         InnerTxnBuilder.Submit(),
         App.globalPut(Bytes("Lucky_Number"), (Btoi(
-            Extract(InnerTxn.last_log(), Int(12), Int(4))) % Int(10000)) + Int(1)),
+            Extract(InnerTxn.last_log(), Int(12), Int(8))) % current_max_guess_number) + Int(1)),
         Approve()
     )
 
@@ -274,8 +320,6 @@ router = Router(
         ),
 
     )
-
-
 )
 
 router.add_method_handler(initiliaze_game_params)
