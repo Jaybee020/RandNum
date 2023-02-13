@@ -106,7 +106,7 @@ router.get("/currentGameParams", (req, res) => __awaiter(void 0, void 0, void 0,
     try {
         const client = yield (0, config_1.initRedis)();
         const key = "Current Game Parameter";
-        const data = yield (0, utils_1.cache)(key, [], 15, helpers_1.getCurrentGameParam, client);
+        const data = yield (0, utils_1.cache)(key, [], 1.5, helpers_1.getCurrentGameParam, client);
         if (!data) {
             return res.status(400).send({
                 status: false,

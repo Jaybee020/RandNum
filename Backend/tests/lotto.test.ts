@@ -4,6 +4,7 @@ import { getGameParams, initializeGameParams } from "../scripts/lottoCall";
 import { algodClient } from "../scripts/utils";
 import { getCurrentGameParam } from "../server/helpers";
 
+//make sure a new test version of the contract is deployed
 describe("Lotto", () => {
   jest.setTimeout(10000);
   test("it should initialize game params", async () => {

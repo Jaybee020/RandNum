@@ -2,3 +2,5 @@ venv
 .env
 sandbox
 node_modules
+redis_data
+mongo

@@ -117,7 +117,7 @@ router.get("/currentGameParams", async (req: Request, res: Response) => {
     const data = await cache<GameParams>(
       key,
       [],
-      15,
+      1.5,
       getCurrentGameParam,
       client
     );

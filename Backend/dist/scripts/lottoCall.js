@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTimeStamp = exports.resetGameParams = exports.initializeGameParams = exports.getMinAmountToStartGame = exports.getGeneratedLuckyNumber = exports.generateRandomNumber = exports.putLuckyNumber = exports.getUserGuessNumber = exports.checkUserWinLottery = exports.getGameParams = exports.getTotalGamesPlayed = exports.call = exports.changeCurrentGameNumber = exports.enterCurrentGame = void 0;
+exports.resetGameParams = exports.initializeGameParams = exports.getMinAmountToStartGame = exports.getGeneratedLuckyNumber = exports.generateRandomNumber = exports.putLuckyNumber = exports.getUserGuessNumber = exports.checkUserWinLottery = exports.getGameParams = exports.getTotalGamesPlayed = exports.call = exports.changeCurrentGameNumber = exports.enterCurrentGame = void 0;
 const algosdk_1 = require("algosdk");
 const config_1 = require("./config");
 const utils_1 = require("./utils");
@@ -328,27 +328,11 @@ exports.initializeGameParams = initializeGameParams;
 function resetGameParams() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const data = yield call(config_1.user, config_1.appId, "reset_game_params ", ["100"]);
+            const data = yield call(config_1.user, config_1.appId, "reset_game_params", []);
             return {
                 status: true,
                 confirmedRound: data.confirmedRound,
             };
-        }
-        catch (error) {
-            return { status: false };
-        }
-    });
-}
-exports.resetGameParams = resetGameParams;
-function getTimeStamp() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const data = yield call(config_1.user, config_1.appId, "get_current_timestamp", []);
-            if (data && data.methodResults[0].returnValue) {
-                return {
-                    data: data.methodResults[0].returnValue.toString(),
-                };
-            }
         }
         catch (error) {
             console.log(error);
@@ -356,4 +340,4 @@ function getTimeStamp() {
         }
     });
 }
-exports.getTimeStamp = getTimeStamp;
+exports.resetGameParams = resetGameParams;

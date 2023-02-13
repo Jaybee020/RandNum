@@ -1,0 +1,7 @@
+node_modules
+.git
+contracts
+sandbox
+tests
+venv
+.env

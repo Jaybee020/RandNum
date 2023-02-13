@@ -10,33 +10,39 @@ import { waitForConfirmation } from "algosdk";
 import { GameParams } from "../server/models/lottoHistory";
 
 //The least time a game lasts for is 30 mins
-const newGameQueue = new Queue("refreshCache", "redis://127.0.0.1:6379");
+const newGameQueue = new Queue("newGame", "redis://127.0.0.1:6379");
 
 newGameQueue.process(async function (job, done) {
   try {
     const data = await endCurrentAndCreateNewGame();
+    console.log(data);
     if (data.newGame.status) {
       const initGameTxns = data.newGame.txns;
       if (initGameTxns && initGameTxns.length > 0) {
-        const signed = initGameTxns.map((txn) => txn.signTxn(user.sk));
-        const { txId } = await algodClient.sendRawTransaction(signed).do();
-        await waitForConfirmation(algodClient, txId, 1000);
-        return txId;
+        try {
+          const signed = initGameTxns.map((txn) => txn.signTxn(user.sk));
+          const { txId } = await algodClient.sendRawTransaction(signed).do();
+          await waitForConfirmation(algodClient, txId, 1000);
+          return txId;
+        } catch (error) {
+          console.error("Could not create a new game because txn failed");
+        }
       }
       const client = await initRedis();
       const key = "Current Game Parameter";
-      await cache<GameParams>(key, [], 30, getCurrentGameParam, client);
+      await cache<GameParams>(key, [], 2, getCurrentGameParam, client);
     }
   } catch (error) {
-    console.error("An error occured while restarting game");
+    console.error(
+      "Resetting game failed.Check if current game is still running"
+    );
   }
 });
 
 export var restartGame = new CronJob(
-  "*/30 * * * *",
+  "*/8 * * * *",
   function () {
-    console.log("Starting to update cache");
-    const timestamp = 60; //add more timeframes
+    console.log("Starting to restart game");
     newGameQueue.add(
       {},
       {

@@ -355,24 +355,11 @@ export async function initializeGameParams(
 
 export async function resetGameParams() {
   try {
-    const data = await call(user, appId, "reset_game_params ", ["100"]);
+    const data = await call(user, appId, "reset_game_params", []);
     return {
       status: true,
       confirmedRound: data.confirmedRound,
     };
-  } catch (error) {
-    return { status: false };
-  }
-}
-
-export async function getTimeStamp() {
-  try {
-    const data = await call(user, appId, "get_current_timestamp", []);
-    if (data && data.methodResults[0].returnValue) {
-      return {
-        data: data.methodResults[0].returnValue.toString(),
-      };
-    }
   } catch (error) {
     console.log(error);
     return { status: false };

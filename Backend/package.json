@@ -33,7 +33,7 @@
   "version": "1.0.0",
   "main": "app.ts",
   "scripts": {
-    "start": "npx ts-node server/app.ts",
+    "start": "node dist/server/app.js",
     "test-script": "npx ts-node scripts/test.ts",
     "test": "jest tests"
   },
