@@ -159,8 +159,20 @@ response.body
 ```bash
 {
     status: true,
-    data: [ticketing_start, ticketing_duration,withdrawal_start, ticket_fee, lucky_number, players_ticket_bought, players_ticket_checked, total_game_played],
-
+    data: GameParams {
+        ticketingStart: number;
+        ticketingDuration: number;
+        withdrawalStart: number;
+        ticketFee: number;
+        luckyNumber: number;
+        winMultiplier: number;
+        maxPlayersAllowed: number;
+        maxGuessNumber: number;
+        gameMaster: string;
+        playersTicketBought: number;
+        playersTicketChecked: number;
+        totalGamePlayed: number;
+        }
 }
 ```
 
@@ -171,10 +183,11 @@ POST "/lotto/enterCurrentGame"
 ```
 
 All parameters are to be in req.body.
-| Parameter | Type | Description |
-| :-------- | :------- | :------------------------- |
-| `playerAddr` | `string` | **Required**. address of player |
-| `guessNumber` | `string` | **Required**. player guess number|
+
+| Parameter     | Type     | Description                       |
+| :------------ | :------- | :-------------------------------- |
+| `playerAddr`  | `string` | **Required**. address of player   |
+| `guessNumber` | `string` | **Required**. player guess number |
 
 This returns an array of transactions to be signed by the client
 
@@ -183,6 +196,34 @@ response.body
 ```bash
 {   status:true,
     data:Transaction[]
+}
+```
+
+### Post method to reset and create a new game
+
+```http
+POST "/lotto/endCurrentAndCreateNewGame"
+```
+
+All parameters are to be in req.body.
+| Parameter | Type | Description |
+| :-------- | :------- | :------------------------- |
+| `ticketingStart` | `number` | **Optional**. time when ticket sales should begin |
+| `ticketingDuration` | `number` | **Optional**. how long ticket sales should last for|
+| `withdrawalStart` | `number` | **Optional**. time when winners can withdraw|
+| `ticketFee` | `number` | **Optional**. how many algos a ticket should cost|
+| `winMultiplier` | `number` | **Optional**. ticketFee multiple winners should get|
+| `maxPlayersAllowed` | `number` | **Optional**. maximum players allowed to participate in the round|
+| `maxGuessNumber` | `number` | **Optional**. maximum value for guess and lucky number|
+| `gameMasterAddr` | `string` | **Required**. address that wants to fund this game round. |
+
+This returns an array of transactions to be signed by the client
+
+response.body
+
+```bash
+{   status:true,
+    data:{newLottoDetails: {}, newGame: { status: boolean, txns: Transaction[] }
 }
 ```
 

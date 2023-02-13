@@ -274,7 +274,6 @@ function endCurrentAndCreateNewGame(ticketingStart = Math.round(Date.now() / 100
                 String(data.data[i])
             : //@ts-ignore
                 Number(data.data[i])));
-        console.log(gameParams);
         // Only reset game when there has been a game played
         if (gameParams.ticketingStart == 0) {
             console.log("No new game was played on contract");

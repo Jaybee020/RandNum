@@ -352,7 +352,6 @@ export async function endCurrentAndCreateNewGame(
           Number(data.data[i]))
   );
 
-  console.log(gameParams);
   // Only reset game when there has been a game played
   if (gameParams.ticketingStart == 0) {
     console.log("No new game was played on contract");
