@@ -245,16 +245,13 @@ function checkPlayerWinStatus(playerAddr) {
 exports.checkPlayerWinStatus = checkPlayerWinStatus;
 function endCurrentAndCreateNewGame(ticketingStart = Math.round(Date.now() / 1000 + 200), ticketingDuration = 960, withdrawalStart = ticketingStart + 2000, ticketFee = 2e6, winMultiplier = 10, maxPlayersAllowed = 1000, maxGuessNumber = 100000, gameMasterAddr = config_1.user.addr) {
     return __awaiter(this, void 0, void 0, function* () {
-        const resetStatus = yield (0, lottoCall_1.resetGameParams)();
-        if (!resetStatus.status || !resetStatus.confirmedRound) {
-            return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
-        }
         const data = yield (0, lottoCall_1.getGameParams)();
         if (!(data === null || data === void 0 ? void 0 : data.status) || !data.data) {
             return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
         }
         //@ts-ignore
         const lottoId = Number(data.data[10]);
+        //@ts-ignore
         const gameParams = {};
         const gameParamsKey = [
             "ticketingStart",
@@ -270,9 +267,23 @@ function endCurrentAndCreateNewGame(ticketingStart = Math.round(Date.now() / 100
             "playersTicketChecked",
             "totalGamePlayed",
         ];
-        gameParamsKey.forEach(
+        gameParamsKey.forEach((gameParamKey, i) => 
         //@ts-ignore
-        (gameParamKey, i) => (gameParams[gameParamKey] = Number(data.data[i])));
+        (gameParams[gameParamKey] = Number.isNaN(Number(data.data[i]))
+            ? //@ts-ignore
+                String(data.data[i])
+            : //@ts-ignore
+                Number(data.data[i])));
+        console.log(gameParams);
+        // Only reset game when there has been a game played
+        if (gameParams.ticketingStart == 0) {
+            console.log("No new game was played on contract");
+            return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
+        }
+        const resetStatus = yield (0, lottoCall_1.resetGameParams)();
+        if (!resetStatus.status || !resetStatus.confirmedRound) {
+            return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
+        }
         const betHistoryDetails = yield lottoHistory_1.LottoModel.findOne({ lottoId: lottoId });
         if (!betHistoryDetails) {
             const createdLotto = yield lottoHistory_1.LottoModel.create({

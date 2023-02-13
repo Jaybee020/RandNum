@@ -319,17 +319,15 @@ export async function endCurrentAndCreateNewGame(
   maxGuessNumber = 100000,
   gameMasterAddr = user.addr
 ) {
-  const resetStatus = await resetGameParams();
-  if (!resetStatus.status || !resetStatus.confirmedRound) {
-    return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
-  }
   const data = await getGameParams();
   if (!data?.status || !data.data) {
     return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
   }
+
   //@ts-ignore
   const lottoId = Number(data.data[10]);
-  const gameParams: any = {};
+  //@ts-ignore
+  const gameParams: GameParams = {};
   const gameParamsKey = [
     "ticketingStart",
     "ticketingDuration",
@@ -345,9 +343,26 @@ export async function endCurrentAndCreateNewGame(
     "totalGamePlayed",
   ];
   gameParamsKey.forEach(
-    //@ts-ignore
-    (gameParamKey, i) => (gameParams[gameParamKey] = Number(data.data[i]))
+    (gameParamKey, i) =>
+      //@ts-ignore
+      (gameParams[gameParamKey] = Number.isNaN(Number(data.data[i]))
+        ? //@ts-ignore
+          String(data.data[i])
+        : //@ts-ignore
+          Number(data.data[i]))
   );
+
+  console.log(gameParams);
+  // Only reset game when there has been a game played
+  if (gameParams.ticketingStart == 0) {
+    console.log("No new game was played on contract");
+    return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
+  }
+  const resetStatus = await resetGameParams();
+  if (!resetStatus.status || !resetStatus.confirmedRound) {
+    return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
+  }
+
   const betHistoryDetails = await LottoModel.findOne({ lottoId: lottoId });
   if (!betHistoryDetails) {
     const createdLotto = await LottoModel.create({
