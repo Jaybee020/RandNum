@@ -43,8 +43,11 @@ const morgan_1 = __importDefault(require("morgan"));
 const dotenv = __importStar(require("dotenv"));
 const lotto_1 = require("./router/lotto");
 const gameManager_1 = require("../workers/gameManager");
+const config_1 = require("../scripts/config");
 dotenv.config();
-const uri = String(process.env.MONGO_CONNECTION_STRING);
+const uri = config_1.MODE == "PRODUCTION"
+    ? String(process.env.MONGO_CONNECTION_STRING)
+    : "mongodb://localhost:27017/RandNum";
 const PORT = parseInt(process.env.PORT) || 8000;
 mongoose_1.default
     .connect(uri, {})

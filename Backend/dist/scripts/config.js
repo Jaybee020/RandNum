@@ -32,23 +32,37 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.initRedis = exports.randomnessBeaconContract = exports.appAddr = exports.appId = exports.player = exports.user = void 0;
+exports.initRedis = exports.MODE = exports.REDIS_PORT = exports.REDIS_USERNAME = exports.REDIS_HOST = exports.REDIS_PASSWORD = exports.randomnessBeaconContract = exports.appAddr = exports.appId = exports.player = exports.user = exports.API_KEY = void 0;
 const algosdk_1 = require("algosdk");
 const dotenv = __importStar(require("dotenv"));
 const redis_1 = require("redis");
 dotenv.config();
 const ADMIN_MNEMONIC = String(process.env.ADMIN_MNEMONIC);
+exports.API_KEY = String(process.env.API_KEY);
 const APP_ID = Number(process.env.APP_ID);
 exports.user = (0, algosdk_1.mnemonicToSecretKey)(ADMIN_MNEMONIC);
 exports.player = (0, algosdk_1.mnemonicToSecretKey)("tuna task minimum either please faculty sport regret seven motor hard hold diary flight distance around carry legend alpha budget decorate office chuckle absent rough");
 exports.appId = APP_ID;
 exports.appAddr = (0, algosdk_1.getApplicationAddress)(APP_ID);
 exports.randomnessBeaconContract = 110096026;
+exports.REDIS_PASSWORD = String(process.env.REDIS_PASSWORD);
+exports.REDIS_HOST = String(process.env.REDIS_HOST);
+exports.REDIS_USERNAME = String(process.env.REDIS_USERNMAE);
+exports.REDIS_PORT = Number(process.env.REDIS_PORT);
+exports.MODE = String(process.env.MODE);
 function initRedis() {
     return __awaiter(this, void 0, void 0, function* () {
-        const client = (0, redis_1.createClient)({
-        // url: `redis://${REDIS_USERNAME}:${REDIS_PASSWORD}@${REDIS_URL}:${REDIS_PORT}`, //comment out if not in production
-        });
+        var client;
+        if (exports.MODE == "PRODUCTION") {
+            client = (0, redis_1.createClient)({
+                url: `redis://${exports.REDIS_USERNAME}:${exports.REDIS_PASSWORD}@${exports.REDIS_HOST}:${exports.REDIS_PORT}`, //comment out if not in production
+            });
+        }
+        else {
+            client = (0, redis_1.createClient)({
+            // url: `redis://${REDIS_USERNAME}:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}`, //comment out if not in production
+            });
+        }
         client.on("error", (err) => console.log("Redis Client error"));
         yield client.connect();
         return client;

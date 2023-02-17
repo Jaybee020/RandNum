@@ -20,7 +20,7 @@ const config_1 = require("./config");
 //   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 // const algodServer = "http://localhost";
 const token = {
-    "X-API-Key": "Xy8NsXxfJg2cQ2YQ4pax6aLrTcj55jZ9mbsNCM30",
+    "X-API-Key": config_1.API_KEY,
 };
 const algodServer = "https://testnet-algorand.api.purestake.io/ps2";
 const indexerServer = "https://testnet-algorand.api.purestake.io/idx2";

@@ -19,13 +19,24 @@ const helpers_1 = require("../server/helpers");
 const config_1 = require("../scripts/config");
 const utils_1 = require("../scripts/utils");
 const algosdk_1 = require("algosdk");
+var newGameQueue;
 //The least time a game lasts for is 30 mins
-const newGameQueue = new bull_1.default("newGame", "redis://127.0.0.1:6379");
+if (config_1.MODE == "PRODUCTION") {
+    newGameQueue = new bull_1.default("newGame", {
+        redis: {
+            port: config_1.REDIS_PORT,
+            host: config_1.REDIS_HOST,
+            password: config_1.REDIS_PASSWORD,
+        },
+    });
+}
+else {
+    newGameQueue = new bull_1.default("newGame", "redis://127.0.0.1:6379");
+}
 newGameQueue.process(function (job, done) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const data = yield (0, helpers_1.endCurrentAndCreateNewGame)();
-            console.log(data);
             if (data.newGame.status) {
                 const initGameTxns = data.newGame.txns;
                 if (initGameTxns && initGameTxns.length > 0) {
@@ -33,7 +44,6 @@ newGameQueue.process(function (job, done) {
                         const signed = initGameTxns.map((txn) => txn.signTxn(config_1.user.sk));
                         const { txId } = yield utils_1.algodClient.sendRawTransaction(signed).do();
                         yield (0, algosdk_1.waitForConfirmation)(utils_1.algodClient, txId, 1000);
-                        return txId;
                     }
                     catch (error) {
                         console.error("Could not create a new game because txn failed");
@@ -43,9 +53,11 @@ newGameQueue.process(function (job, done) {
                 const key = "Current Game Parameter";
                 yield (0, utils_1.cache)(key, [], 2, helpers_1.getCurrentGameParam, client);
             }
+            done();
         }
         catch (error) {
             console.error("Resetting game failed.Check if current game is still running");
+            done(error);
         }
     });
 });

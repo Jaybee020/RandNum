@@ -14,6 +14,7 @@ const config_1 = require("../scripts/config");
 const lottoCall_1 = require("../scripts/lottoCall");
 const utils_1 = require("../scripts/utils");
 const helpers_1 = require("../server/helpers");
+//make sure a new test version of the contract is deployed
 describe("Lotto", () => {
     jest.setTimeout(10000);
     test("it should initialize game params", () => __awaiter(void 0, void 0, void 0, function* () {

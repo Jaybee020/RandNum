@@ -22,7 +22,7 @@ import {
 import { decode, encode } from "@msgpack/msgpack";
 import { spawnSync } from "child_process";
 import { readFileSync } from "fs";
-import { appId } from "./config";
+import { API_KEY, appId } from "./config";
 
 // // create client object to connect to sandbox's algod client
 
@@ -31,7 +31,7 @@ import { appId } from "./config";
 // const algodServer = "http://localhost";
 
 const token = {
-  "X-API-Key": "Xy8NsXxfJg2cQ2YQ4pax6aLrTcj55jZ9mbsNCM30",
+  "X-API-Key": API_KEY,
 };
 const algodServer = "https://testnet-algorand.api.purestake.io/ps2";
 const indexerServer = "https://testnet-algorand.api.purestake.io/idx2";

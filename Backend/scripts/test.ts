@@ -16,7 +16,6 @@ import {
   generateRandomNumber,
   getGameParams,
   getGeneratedLuckyNumber,
-  getTimeStamp,
   getUserGuessNumber,
   initializeGameParams,
   putLuckyNumber,

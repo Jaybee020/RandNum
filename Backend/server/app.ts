@@ -6,9 +6,13 @@ import morgan from "morgan";
 import * as dotenv from "dotenv";
 import { lottoRouter } from "./router/lotto";
 import { restartGame } from "../workers/gameManager";
+import { MODE } from "../scripts/config";
 
 dotenv.config();
-const uri = String(process.env.MONGO_CONNECTION_STRING);
+const uri =
+  MODE == "PRODUCTION"
+    ? String(process.env.MONGO_CONNECTION_STRING)
+    : "mongodb://localhost:27017/RandNum";
 const PORT: number = parseInt(process.env.PORT as string) || 8000;
 mongoose
   .connect(uri, {})
