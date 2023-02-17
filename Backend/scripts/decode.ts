@@ -9,6 +9,54 @@ export class LottoGameArgsDecoder {
   constructor() {
     this.encodedMethods = [];
     this.decodedMethods = [];
+    const initializeGameABI = new ABIMethod({
+      name: "initiliaze_game_params",
+      args: [
+        {
+          type: "uint64",
+          name: "ticketing_start",
+        },
+        {
+          type: "uint64",
+          name: "ticketing_duration",
+        },
+        {
+          type: "uint64",
+          name: "ticket_fee",
+        },
+        {
+          type: "uint64",
+          name: "withdrawal_start",
+        },
+        {
+          type: "uint64",
+          name: "win_multiplier",
+        },
+        {
+          type: "uint64",
+          name: "max_guess_number",
+        },
+        {
+          type: "uint64",
+          name: "max_players_allowed",
+        },
+        {
+          type: "account",
+          name: "lottery_account",
+        },
+        {
+          type: "pay",
+          name: "create_txn",
+        },
+      ],
+      returns: {
+        type: "void",
+      },
+    });
+    this.encodedMethods.push(
+      Buffer.from(initializeGameABI.getSelector()).toString("base64")
+    );
+    this.decodedMethods.push(initializeGameABI.name);
     const enterGameABI = new ABIMethod({
       name: "enter_game",
       args: [

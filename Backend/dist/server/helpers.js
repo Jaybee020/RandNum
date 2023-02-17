@@ -28,6 +28,20 @@ function parseLottoTxn(userTxns) {
                 userTxn["application-transaction"]["accounts"][1] ||
                     userTxn["sender"];
         }
+        else if (action == "initiliaze_game_params") {
+            const initParams = userTxn["application-transaction"]["application-args"]
+                .slice(1, 8)
+                .map((arg) => (0, algosdk_1.decodeUint64)(Buffer.from(arg, "base64"), "mixed"));
+            value = {
+                ticketingStart: initParams[0],
+                ticketingDuration: initParams[1],
+                ticketFee: initParams[2],
+                withdrawalStart: initParams[3],
+                win_multiplier: initParams[4],
+                max_guess_number: initParams[5],
+                max_players_allowed: initParams[6],
+            };
+        }
         else {
             value = (0, algosdk_1.decodeUint64)(Buffer.from(userTxn["application-transaction"]["application-args"][1], "base64"), "mixed");
         }

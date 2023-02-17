@@ -44,7 +44,10 @@ interface Transaction {
   id: string;
   group?: string;
   "confirmed-round": number;
-  "application-transaction": any;
+  "application-transaction": {
+    "application-args": string[];
+    accounts: string[];
+  };
   "payment-transaction": {
     receiver: string;
   };
@@ -67,6 +70,21 @@ function parseLottoTxn(userTxns: Transaction[]) {
         value =
           userTxn["application-transaction"]["accounts"][1] ||
           userTxn["sender"];
+      } else if (action == "initiliaze_game_params") {
+        const initParams = userTxn["application-transaction"][
+          "application-args"
+        ]
+          .slice(1, 8)
+          .map((arg) => decodeUint64(Buffer.from(arg, "base64"), "mixed"));
+        value = {
+          ticketingStart: initParams[0],
+          ticketingDuration: initParams[1],
+          ticketFee: initParams[2],
+          withdrawalStart: initParams[3],
+          win_multiplier: initParams[4],
+          max_guess_number: initParams[5],
+          max_players_allowed: initParams[6],
+        };
       } else {
         value = decodeUint64(
           Buffer.from(
