@@ -19,7 +19,7 @@
   }
 }
 @mixin tablet {
-  @media (max-width: 768px) {
+  @media (max-width: 868px) {
     @content;
   }
 }
@@ -29,7 +29,7 @@
   }
 }
 @mixin slScreen {
-  @media (max-width: 400px) {
+  @media (max-width: 428px) {
     @content;
   }
 }

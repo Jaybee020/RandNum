@@ -23,6 +23,30 @@
     display: flex;
   }
 
+  .error-message {
+    display: flex;
+    font-size: 12px;
+    padding-left: 6px;
+    margin-bottom: 8px;
+    color: #d85841;
+    text-align: center;
+    flex-direction: row;
+    align-items: center;
+    font-family: $sans1med;
+    p {
+      text-align: center;
+    }
+  }
+
+  .connect-wallet-message {
+    font-size: 17px;
+    line-height: 1.4;
+    font-family: $sans1med;
+    @include phone {
+      font-size: 15px;
+    }
+  }
+
   .lotto-page {
     flex: 1;
     gap: 30px;
@@ -35,6 +59,13 @@
       font-size: 30px;
       margin-bottom: 16px;
       font-family: $sans1med;
+      @include tablet {
+        margin-bottom: 6px;
+      }
+      @include phone {
+        font-size: 26px;
+        margin-bottom: 2px;
+      }
     }
 
     &__actions {

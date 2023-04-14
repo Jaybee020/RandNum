@@ -1,20 +1,21 @@
+import dayjs from "dayjs";
 import Icon from "../../components/common/Icon";
 import { constrictAddr } from "../../utils/helpers";
 
-const HomeBet = () => {
+const HomeBet = ({ bet }) => {
   return (
     <div className="home-page__recent-bets__card">
       <div className="header">
         <div className="header__row">
           <div className="header__row__betId">
-            <p>0a51c-544b</p>
+            <p>{constrictAddr(bet?._id)}</p>
           </div>
         </div>
         <div className="header__row">
           <div className="header__row__luckyNo">
             <Icon.Dawn />
-            <p>Lucky No -</p>
-            <p>48</p>
+            <p>Lucky No: </p>
+            <p>{bet?.gameParams?.luckyNumber}</p>
           </div>
         </div>
       </div>
@@ -22,19 +23,37 @@ const HomeBet = () => {
       <div className="details">
         <div className="details__row">
           <p>Started</p>
-          <p>04:00, Oct 26</p>
+          <p>
+            {!isNaN(bet?.gameParams?.ticketingStart) &&
+              dayjs(bet?.gameParams?.ticketingStart * 1000).format(
+                "HH:mm, MMM DD"
+              )}
+          </p>
         </div>
         <div className="details__row">
           <p>Closed</p>
-          <p>23:46, Oct 27</p>
+          <p>
+            {!isNaN(bet?.gameParams?.ticketingDuration) &&
+              dayjs(
+                (bet?.gameParams?.ticketingStart +
+                  bet?.gameParams?.ticketingDuration) *
+                  1000
+              ).format("HH:mm, MMM DD")}
+          </p>
         </div>
         <div className="details__row">
-          <p>Top Winner</p>
-          <p>
-            {constrictAddr(
-              "IYG2CGWR36BMBDSE4BOIXD7UZZJAT5QETQONOACDQUZWWDZFMJX6QJA6II"
-            )}
-          </p>
+          <p>Txn Reference</p>
+          <a
+            target="_blank"
+            rel="noreferrer"
+            href={
+              bet?.txReference
+                ? `https://testnet.algoexplorer.io/tx/${bet?.txReference}`
+                : ""
+            }
+          >
+            {bet?.txReference && constrictAddr(bet?.txReference)}
+          </a>
         </div>
       </div>
     </div>

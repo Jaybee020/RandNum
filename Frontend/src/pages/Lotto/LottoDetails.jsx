@@ -7,10 +7,10 @@ const LottoDetails = ({ data, withdrawalStart }) => {
   return (
     <>
       <div className="lotto-page__details">
-        <ul className="bet-details__list">
+        <ul className="bet-details__list no-margin">
           {Object.keys(data)?.map((key, ind) => (
             <li className="bet-details__list-item" key={ind}>
-              <p className="key">{key}</p>
+              <p className="key">{key?.split(/(?=[A-Z])/).join(" ")}</p>
 
               {key === "ticketFee" ? (
                 <div className="amount-value">

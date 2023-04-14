@@ -1,88 +1,127 @@
-import _ from "lodash";
 import millify from "millify";
-import { useEffect, useState } from "react";
+import Skeleton from "react-loading-skeleton";
 import Icon from "../../components/common/Icon";
-import { constrictAddr, getBalance, randAvatar } from "../../utils/helpers";
+import { constrictAddr } from "../../utils/helpers";
+import { useProfile } from "../../context/ProfileContext";
 
-const ProfileStats = ({ txnHistory, addr }) => {
-  const [stats, setStats] = useState(null);
-
-  const processTxns = async () => {
-    const currentProfile = _.groupBy(txnHistory?.receivedTxns, "sender")[addr];
-    const gamesWon = _.groupBy(txnHistory?.sentTxns, "receiver")[addr];
-
-    const amountSpent = _.sumBy(currentProfile, function (obj) {
-      return obj["payment-transaction"]?.amount;
-    });
-    const profit = _.sumBy(gamesWon, function (obj) {
-      return obj["payment-transaction"]?.amount;
-    });
-
-    const balance = await getBalance(addr);
-
-    setStats({
-      amountSpent: amountSpent / 1e6,
-      pnl: (profit - amountSpent) / 1e6,
-      gamesPlayed: currentProfile?.length,
-      gamesLost: (currentProfile?.length || 0) - (gamesWon?.length || 0),
-      balance,
-    });
-  };
-
-  useEffect(() => {
-    processTxns();
-  }, []);
+const ProfileStats = () => {
+  const { addr, stats, fetchingDets, errorDets } = useProfile();
 
   return (
     <div className="profile-page__stats">
-      <div className="profile-page__info">
-        <div className="profile-page__info__image-cover">
-          <img src={randAvatar()} alt="" />
-        </div>
-        <div className="profile-page__info__details">
-          <p>{constrictAddr(addr)}</p>
-          <div className="row">
-            <Icon.Algo />
+      <div className="profile-page__stat">
+        <p className="address">
+          {addr ? constrictAddr(addr, 6, 4) : "Invalid Address"}
+        </p>
+        <div className="row">
+          {fetchingDets || errorDets ? (
             <h2>
-              {!isNaN(stats?.balance) &&
-                millify(stats?.balance, { precision: 1 })}
+              <Skeleton
+                width={110}
+                height={24}
+                highlightColor={"#ccc"}
+                enableAnimation={!errorDets}
+              />
             </h2>
-          </div>
+          ) : (
+            <>
+              <Icon.Algo />
+              <h2>
+                {!isNaN(stats?.balance)
+                  ? millify(stats?.balance, { precision: 1 })
+                  : 0}
+              </h2>
+            </>
+          )}
         </div>
       </div>
 
       <div className="profile-page__stat played">
         <p>Games Played</p>
         <div className="row">
-          <h2>{stats?.gamesPlayed}</h2>
+          <h2>
+            {fetchingDets || errorDets ? (
+              <Skeleton
+                width={110}
+                height={24}
+                highlightColor={"#ccc"}
+                enableAnimation={!errorDets}
+              />
+            ) : (
+              stats?.gamesPlayed ?? 0
+            )}
+          </h2>
         </div>
       </div>
 
       <div className="profile-page__stat amt-paid">
         <p>Amount spent</p>
         <div className="row">
-          <Icon.Algo />
-          <h2>
-            {!isNaN(stats?.amountSpent) &&
-              millify(stats?.amountSpent, { precision: 1 })}
-          </h2>
+          {fetchingDets || errorDets ? (
+            <h2>
+              <Skeleton
+                width={110}
+                height={24}
+                highlightColor={"#ccc"}
+                enableAnimation={!errorDets}
+              />
+            </h2>
+          ) : (
+            <>
+              <Icon.Algo />
+              <h2>
+                {!isNaN(stats?.amountSpent)
+                  ? millify(stats?.amountSpent, { precision: 1 })
+                  : 0}
+              </h2>
+            </>
+          )}
         </div>
       </div>
 
       <div className="profile-page__stat">
         <p>Total PnL</p>
-        <div className="row pnl">
-          <Icon.Algo />
-          <h2 data-profit={stats?.pnl > 0}>
-            {!isNaN(stats?.pnl) && millify(stats?.pnl, { precision: 1 })}
-          </h2>
-        </div>
+
+        {fetchingDets || errorDets ? (
+          <div className="row">
+            <h2>
+              <Skeleton
+                width={110}
+                height={24}
+                highlightColor={"#ccc"}
+                enableAnimation={!errorDets}
+              />
+            </h2>
+          </div>
+        ) : (
+          <div className={`row pnl ${!stats?.pnl && "inactive"}`}>
+            <>
+              <Icon.Algo />
+              <h2 data-profit={stats?.pnl > 0}>
+                {!isNaN(stats?.pnl)
+                  ? millify(Math.abs(stats?.pnl), { precision: 1 })
+                  : 0}
+              </h2>
+            </>
+          </div>
+        )}
       </div>
 
       <div className="profile-page__stat fav">
-        <p>Games Lost</p>
+        <p>Games Won</p>
         <div className="row">
-          <h2>{stats?.gamesLost}</h2>
+          <h2>
+            {fetchingDets || errorDets ? (
+              <Skeleton
+                width={110}
+                height={24}
+                highlightColor={"#ccc"}
+                enableAnimation={!errorDets}
+              />
+            ) : (
+              stats?.gamesWon ?? 0
+            )}
+          </h2>
         </div>
       </div>
     </div>

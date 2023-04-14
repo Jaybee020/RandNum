@@ -1,6 +1,7 @@
-import { PeraWalletConnect } from "@perawallet/connect";
-import MyAlgoWallet from "@randlabs/myalgo-connect";
+import algosdk from "algosdk";
 import { ALGOD_CLIENT } from "./constants";
+import MyAlgoWallet from "@randlabs/myalgo-connect";
+import { PeraWalletConnect } from "@perawallet/connect";
 
 export class Pera {
   wallet = new PeraWalletConnect();
@@ -9,12 +10,22 @@ export class Pera {
     this.client = ALGOD_CLIENT[network];
   }
 
+  async disconnect() {
+    try {
+      await this.wallet?.disconnect();
+      localStorage.clear("recoil-persist");
+    } catch (error) {
+      //
+    }
+  }
+
   async connect() {
     try {
       const addresses = await this.wallet.connect();
-      this.wallet.connector?.on("disconnect", this.disconnect);
-      // localStorage.setItem("address", addresses[0]);
-      // localStorage.setItem("provider", "PeraWallet");
+      this.wallet.connector?.on("disconnect", () => {
+        localStorage.clear("recoil-persist");
+        window.location.reload();
+      });
       return addresses[0];
     } catch (err) {
       if (err?.data?.type !== "CONNECT_MODAL_CLOSED") {
@@ -23,12 +34,6 @@ export class Pera {
         throw new Error(err.message);
       }
     }
-  }
-
-  async disconnect() {
-    await this.wallet.disconnect();
-    localStorage.removeItem("address");
-    localStorage.removeItem("provider");
   }
 
   async signTransaction(txn) {
@@ -54,8 +59,6 @@ export class MyAlgo {
       const accounts = await this.wallet.connect({
         shouldSelectOneAccount: true,
       });
-      // localStorage.setItem("address", accounts[0].address);
-      // localStorage.setItem("provider", "MyAlgo");
       return accounts[0].address;
     } catch (error) {
       throw new Error(error.message);
@@ -74,3 +77,53 @@ export class MyAlgo {
 
 export const PeraInst = new Pera("testnet");
 export const MyAlgoInst = new MyAlgo("testnet");
+
+export const MultiSigner = async (txns, provider) => {
+  if (provider === "myAlgo") {
+    const decodedTxns = txns.map(txn =>
+      algosdk.decodeUnsignedTransaction(new Uint8Array(txn)).toByte()
+    );
+
+    await MyAlgoInst.wallet
+      .signTransaction(decodedTxns)
+      .then(async signedTxns => {
+        const blobArray = signedTxns.map(item => item.blob);
+
+        ALGOD_CLIENT["testnet"]
+          .sendRawTransaction(blobArray)
+          .do()
+          .then(submittedTxn => {
+            console.log("done");
+          })
+          .catch(error => {
+            console.log(error);
+          });
+      })
+      .catch(error => {
+        console.log(error);
+      });
+  } else if (provider === "pera") {
+    const decodedTxns = txns.map(txn => {
+      return {
+        txn: algosdk.decodeUnsignedTransaction(new Uint8Array(txn)),
+      };
+    });
+
+    await PeraInst.wallet
+      .signTransaction([decodedTxns])
+      .then(async signedTxns => {
+        ALGOD_CLIENT["testnet"]
+          .sendRawTransaction(signedTxns)
+          .do()
+          .then(submittedTxn => {
+            console.log("Submitted", submittedTxn);
+          })
+          .catch(error => {
+            console.log(error);
+          });
+      })
+      .catch(error => {
+        console.log(error);
+      });
+  }
+};

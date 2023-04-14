@@ -1,23 +1,38 @@
 .app-table-header {
-  padding-top: 100px;
-  margin-bottom: 30px;
-  padding-bottom: 50px;
+  margin-top: 3vmin;
+  margin-bottom: 14px;
+
+  padding-top: 40px;
+  padding-bottom: 40px;
+
+  top: 0px;
+  z-index: 1;
+  position: sticky;
+  background: $main;
   font-family: $sansmed;
   flex-direction: column;
   border-bottom: 1px solid rgba($color: $sub, $alpha: 0.1);
   @include tablet {
-    padding-top: 8vh;
-    margin-bottom: 10px;
+    padding-top: 30px;
+    margin-top: 5vmin;
+    padding-bottom: 30px;
   }
 
-  &__title {
-    font-size: 30px;
+  &__title-cover {
+    display: flex;
+    flex-direction: row;
+    padding-bottom: 20px;
+    justify-content: space-between;
   }
+  &__title {
+    font-size: 36px;
+  }
+
   &__row {
     @extend %row-center-spaced;
-    gap: 30px;
+    gap: 20px 26px;
     flex-wrap: wrap;
-    margin-top: 36px;
+    // margin-top: 36px;
 
     .action-btns {
       @extend %row-center;
@@ -27,28 +42,38 @@
       .action-btn {
         @extend %row-middle;
         gap: 4px;
-        height: 42px;
+        height: 38px;
         cursor: pointer;
         font-size: 14px;
         max-width: 100%;
-        min-width: 135px;
+        min-width: 116px;
         overflow: hidden;
         padding: 2px 15px;
         border-radius: 8px;
         border: 1px solid rgba($color: $sub, $alpha: 0.15);
-        svg {
-          fill: $sub;
-          width: 22px;
-          stroke: $sub;
-          stroke-width: 0.3px;
-        }
+
         &:not(.download) {
           text-transform: capitalize;
+
+          svg {
+            fill: $sub;
+            width: 22px;
+            stroke: $sub;
+            stroke-width: 0.3px;
+          }
         }
         &.download {
           margin-left: 20px;
           background: rgba($color: $sub, $alpha: 0.05);
           border: 1px solid rgba($color: $sub, $alpha: 0.1);
+
+          @include tablet {
+            margin-left: 10px;
+          }
+        }
+
+        @include tablet {
+          min-width: auto !important;
         }
       }
     }
@@ -62,6 +87,10 @@
   overflow: scroll scroll;
   flex-direction: column;
   font-family: $sans1med;
+
+  border-radius: 12px;
+  // background: #eaeaea;
+
   &::-webkit-scrollbar {
     display: none;
   }
@@ -78,6 +107,10 @@
     &:not(:last-child) {
       border-bottom: 1px solid rgba($color: #000000, $alpha: 0.06);
     }
+    &:hover:not(.app-table__row__header) {
+      background: rgba($color: $sub, $alpha: 0.05);
+    }
+
     &__header {
       cursor: default;
       color: rgba($color: $sub, $alpha: 0.6);
@@ -91,7 +124,7 @@
 
       @extend %indicator;
       .indicator {
-        min-width: 43px !important;
+        // min-width: 43px !important;
       }
     }
 
@@ -120,7 +153,7 @@
         margin-bottom: 2px;
       }
       p {
-        min-width: 36px;
+        // min-width: 36px;
       }
       &.staked {
         gap: 7px;
@@ -162,6 +195,18 @@
       max-width: 130px;
       text-align: center;
       justify-content: center;
+
+      a {
+        height: 80%;
+        display: flex;
+        font-size: 13px;
+        align-items: center;
+        justify-content: center;
+        p {
+          padding-bottom: 1px;
+          border-bottom: 1px solid #000;
+        }
+      }
     }
   }
 

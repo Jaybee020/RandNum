@@ -1,6 +1,7 @@
 .bet-details {
   width: 100%;
-  padding-bottom: 10vh;
+  // padding-bottom: 10vh;
+  padding-bottom: 4.5vh;
   font-family: $sans1med;
   flex-direction: column;
 
@@ -9,6 +10,9 @@
     display: flex;
     margin-bottom: 40px;
     flex-direction: column;
+    &.no-margin {
+      margin-bottom: 0px;
+    }
     &-item {
       display: flex;
       padding: 16px 0px;
@@ -31,6 +35,17 @@
         @extend %row-center;
         @extend %indicator;
       }
+      .amount {
+        gap: 6px;
+        svg {
+          fill: $sub;
+          width: 16px;
+          height: 16px;
+          stroke: $sub;
+          stroke-width: 0.3px;
+        }
+        @extend %row-center;
+      }
     }
   }
 
@@ -40,6 +55,7 @@
       font-size: 24px;
       margin-top: 10px;
       color: rgba($color: $sub, $alpha: 0.5);
+      color: $sub;
       @include phone {
         font-size: 22px;
       }
@@ -56,6 +72,7 @@
         width: 100%;
         padding: 16px 0px;
         flex-direction: row;
+        color: #23232379;
       }
       &__list {
         width: 100%;
@@ -63,7 +80,8 @@
         &-item {
           display: flex;
           padding: 16px 0px;
-          @extend %row-center-spaced;
+          @extend %row-spaced;
+          align-items: flex-end;
           border-top: 1px solid rgba($color: $sub, $alpha: 0.1);
           .block {
             gap: 10px;

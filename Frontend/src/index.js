@@ -7,10 +7,11 @@ import { RecoilRoot } from "recoil";
 import ReactDOM from "react-dom/client";
 import TimeAgo from "javascript-time-ago";
 import duration from "dayjs/plugin/duration";
+import isBetween from "dayjs/plugin/isBetween";
 import en from "javascript-time-ago/locale/en.json";
-import { reportWebVitals } from "./utils/reportWebVitals";
 
 dayjs.extend(duration);
+dayjs.extend(isBetween);
 TimeAgo.addDefaultLocale(en);
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
@@ -21,5 +22,3 @@ root.render(
     </RecoilRoot>
   </React.StrictMode>
 );
-
-// reportWebVitals(console.log);

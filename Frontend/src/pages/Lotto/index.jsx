@@ -8,22 +8,32 @@ import Navbar from "../../components/layout/Navbar";
 import EmptyState from "../../components/common/EmptyState";
 
 const Lotto = () => {
-  const { data, isLoading, error } = useQuery(
+  const {
+    data,
+    error,
+    isLoading,
+    refetch: refetchCurrentGame,
+  } = useQuery(
     "CurrentGame",
     () =>
       axios.get(`/currentGameParams`).then(response => response?.data?.data),
-    { refetchOnWindowFocus: false, retry: 2 }
+    { refetchOnWindowFocus: false, retry: false, refetchInterval: 60000 }
   );
 
   return (
     <div className="lotto-page-main">
       <Navbar />
 
-      <h2 className="lotto-page-title">Next game</h2>
-      <LottoUserActions lottoDetails={data} />
+      <h2 className="lotto-page-title">Current game</h2>
+      <LottoUserActions
+        lottoError={error}
+        lottoDetails={data}
+        fetchingLotto={isLoading}
+        refetchCurrentGame={refetchCurrentGame}
+      />
       <div className="lotto-page">
         {isLoading ? (
-          <EmptyState title={"Fetching current game"} />
+          <EmptyState title={"Fetching current game"} isLoading />
         ) : error ? (
           <EmptyState
             isError

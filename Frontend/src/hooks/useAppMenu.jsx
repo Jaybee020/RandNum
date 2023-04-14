@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Menu, MenuItem } from "@szhsin/react-menu";
 
-const useAppMenu = (defaultOption = null, items, onCallback) => {
+const useAppMenu = (defaultOption = null, items) => {
   const [activeOption, setActiveOption] = useState(defaultOption || items[0]);
 
   const AppMenu = ({ children }) => {

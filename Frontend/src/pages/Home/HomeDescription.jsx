@@ -1,6 +1,7 @@
 import { Fragment, useEffect } from "react";
 import random from "canvas-sketch-util/random";
 import Icon from "../../components/common/Icon";
+import { Link } from "react-router-dom";
 
 const HomeDescription = () => {
   let time = Date.now();
@@ -28,35 +29,35 @@ const HomeDescription = () => {
 
   useEffect(() => {
     updateLines();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="home-page__description">
       <div className="home-page__description__header">
         <div className="logo">
-          <Icon.Logo />
+          <Icon.Logo2 />
         </div>
       </div>
 
       <div className="home-page__description__content">
         <h2 className="home-page__description__content__title">
-          Lorem ipsum dolor sit amet consectetur, adipisicing elit. Magnam
-          voluptatem.
+          Play and stand a chance to win 10x the amount staked on RandNum.
         </h2>
         <p className="home-page__description__content__subtitle">
-          Lorem ipsum dolor sit amet consectetur adipisicing elit. Reiciendis
-          ipsa repellat, in, maiores quibusdam.
+          Take complete control of your bets, enjoy the best betting
+          experiences, and earn fantastic rewards.
         </p>
 
         <div className="home-page__description__content__buttons">
-          <button>
+          <Link to={"/history"} className="logo">
             <Icon.Scroll />
             <p>Bets history</p>
-          </button>
-          <button>
+          </Link>
+          <Link to={"/lotto"} className="logo">
             <Icon.Strategy />
             <p>Join current bet</p>
-          </button>
+          </Link>
         </div>
       </div>
 

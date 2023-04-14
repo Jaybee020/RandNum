@@ -7,6 +7,7 @@
   overflow: auto;
   position: fixed;
   max-width: 448px;
+  padding-top: 0px;
   background: $main;
   z-index: z("modal");
   flex-direction: column;
@@ -24,10 +25,16 @@
 
   &__header {
     display: flex;
-    margin-bottom: 40px;
     font-family: $sans1med;
     @extend %row-center-spaced;
     text-transform: capitalize;
+
+    top: 0px;
+    padding-top: 34px;
+    position: sticky;
+    background: $main;
+    padding-bottom: 30px;
+
     .app-logo {
       @extend %row-middle;
       svg {
@@ -70,11 +77,23 @@
     letter-spacing: -0.4px;
     transform: translate(-50%, -50%);
     border: 1px solid rgba($color: $sub, $alpha: 0.15);
+
+    &.new-game {
+      width: 410px;
+    }
+
     @include phone {
       padding: 24px 22px;
     }
     .app-modal__header {
-      margin-bottom: 10px;
+      top: 0px;
+      padding-top: 0px;
+      margin-bottom: 0px;
+      padding-bottom: 10px;
+      &.no-capitalize {
+        text-transform: none;
+      }
+
       h2 {
         font-size: 19px;
         margin-top: 2px;
@@ -93,11 +112,182 @@
 
     .app-modal__description {
       gap: 8px;
-      margin-bottom: 28px;
+      margin-bottom: 22px;
       flex-direction: column;
       p {
-        font-size: 16px;
+        font-size: 15px;
         color: rgba($color: $sub, $alpha: 0.5);
+      }
+    }
+
+    .new-game-inputs {
+      gap: 10px;
+      position: relative;
+      flex-direction: column;
+
+      .loading-overlay {
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        position: absolute;
+        align-items: center;
+        flex-direction: column;
+        justify-content: center;
+        z-index: z("modal-loader");
+        backdrop-filter: blur(1px);
+        background: rgba($color: $main, $alpha: 0.2);
+      }
+
+      .new-game-input {
+        gap: 10px;
+        width: 100%;
+        height: 48px;
+        cursor: pointer;
+        padding: 0px 14px;
+        align-items: center;
+        flex-direction: row;
+        border-radius: 8px;
+        justify-content: space-between;
+        border: 1px solid rgba($color: $sub, $alpha: 0.09);
+
+        .time-options {
+          gap: 8px;
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+        }
+
+        .time-option {
+          gap: 0px;
+          color: $sub;
+          // width: 56px;
+          height: 28px;
+          display: flex;
+          font-size: 12px;
+          padding: 0px 8px;
+          border-radius: 6px;
+          align-items: center;
+          flex-direction: row;
+          font-family: $sans1med;
+          justify-content: space-between;
+          background: rgba($color: $sub, $alpha: 0.06);
+
+          input {
+            flex: 1;
+            font-size: 12px;
+            padding: 4px 2px;
+            text-align: center;
+            letter-spacing: 1px;
+            font-family: $sans1med;
+          }
+
+          .select-btn {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            font-size: 12px;
+            align-items: center;
+            font-family: $sans1med;
+            justify-content: center;
+            p {
+              flex: 1;
+              display: flex;
+            }
+            svg {
+              margin-left: 5px;
+            }
+          }
+
+          .time-picker {
+            width: 44px;
+            min-width: 44px;
+            background: #fff;
+            padding: 2px 0px !important;
+            &::-webkit-scrollbar {
+              width: 6px;
+              &-thumb {
+                width: 4px;
+                border-radius: 4px;
+                background: rgba($color: #000000, $alpha: 0.1);
+              }
+            }
+
+            &-item {
+              color: #23232380;
+              display: flex;
+              font-size: 12px;
+              padding: 10px 0px;
+              flex-direction: row;
+              justify-content: center;
+              border-bottom: 1px solid #f1f1f1;
+              &:last-child {
+                border-bottom: none;
+              }
+              &.active {
+                color: $sub;
+              }
+            }
+
+            &.wide {
+              min-width: 60px;
+              width: max-content !important;
+              .time-picker-item {
+                padding: 10px 12px;
+              }
+            }
+          }
+          svg {
+            margin-left: 1px;
+          }
+        }
+
+        label {
+          flex: 1;
+          font-size: 13.4px;
+          color: rgba($color: $sub, $alpha: 0.5);
+        }
+        .input-block {
+          gap: 6px;
+          flex: 1;
+          color: $sub;
+          display: flex;
+          border: none;
+          outline: none;
+          font-size: 14px;
+          padding: 0px 13px;
+          border-radius: 6px;
+          flex-direction: row;
+          align-items: center;
+          justify-content: flex-end;
+          max-width: calc(max(25%, 90px));
+          background: rgba($color: $sub, $alpha: 0.06);
+          input {
+            flex: 1;
+            color: $sub;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            text-align: end;
+            max-width: 100%;
+            padding: 6px 0px;
+            font-family: $sans1med;
+            &::placeholder {
+              font-size: 12px;
+              color: rgba($color: $sub, $alpha: 0.5);
+            }
+          }
+
+          &.sm {
+            max-width: calc(max(20%, 70px));
+          }
+          &.ticket {
+            gap: 10px;
+            padding: 0px 10px 0px 13px;
+            max-width: calc(max(20%, 80px));
+          }
+        }
       }
     }
 
@@ -141,6 +331,21 @@
       }
     }
 
+    .error-message {
+      display: flex;
+      font-size: 12px;
+      margin-top: 18px;
+      color: #d85841;
+      text-align: center;
+      flex-direction: row;
+      align-items: center;
+      font-family: $sans1med;
+      justify-content: center;
+      p {
+        text-align: center;
+      }
+    }
+
     .connect-wallet-btn {
       flex: 1;
       display: flex;
@@ -154,6 +359,13 @@
       border-radius: 10px;
       font-family: $sans1med;
       justify-content: center;
+
+      &.error {
+        margin-top: 16px;
+      }
+      &.loading {
+        cursor: not-allowed;
+      }
     }
   }
 }

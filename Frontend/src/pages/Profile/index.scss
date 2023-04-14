@@ -3,7 +3,6 @@
 @import "../../styles/common/partials";
 
 .profile-page {
-  gap: 24px;
   width: 100vw;
   display: flex;
   min-height: 100vh;
@@ -28,9 +27,8 @@
     gap: 30px;
     flex-wrap: wrap;
     padding-top: 26px;
-    padding-bottom: 36px;
+    padding-bottom: 26px;
     font-family: $sansmed;
-    border-bottom: 1px solid rgba($color: #000000, $alpha: 0.08);
 
     @include phone {
       gap: 30px;
@@ -41,12 +39,19 @@
 
   %stat-content {
     text-align: center;
+
+    &:not(:first-child) {
+      .row {
+        justify-content: center;
+      }
+    }
     .row {
-      gap: 4px;
+      gap: 6px;
       align-items: center;
       flex-direction: row;
+
       @include phone {
-        gap: 0px;
+        gap: 6px;
       }
       &.pnl {
         margin-top: 10px;
@@ -58,6 +63,10 @@
         &[data-profit="true"] {
           color: #1b5e21;
           background: #d3ead5;
+        }
+        &.inactive {
+          color: #666;
+          background: #e1e1e1;
         }
 
         h2 {
@@ -73,35 +82,54 @@
 
         svg {
           fill: $sub;
-          height: 20px;
+          height: 20px !important;
           margin-top: 0px;
           @include tablet {
-            height: 18px;
+            height: 18px !important;
           }
           @include phone {
             margin-top: 0px;
-            height: 14px;
+            height: 14px !important;
           }
         }
       }
     }
-    svg {
-      fill: $sub;
-      height: 28px;
-      margin-top: 10px;
-      @include tablet {
-        height: 24px;
-      }
-      @include phone {
+
+    &:not(.no-fill) {
+      svg {
+        fill: $sub;
+        height: 27px !important;
         margin-top: 10px;
-        height: 20px;
+        @include tablet {
+          height: 24px !important;
+        }
+        @include phone {
+          margin-top: 9px;
+          height: 18px !important;
+        }
       }
     }
+    svg {
+      margin-top: 10px;
+      @include tablet {
+        height: 24px !important;
+      }
+      @include phone {
+        margin-top: 9px;
+      }
+    }
+
     p {
       font-size: 16px;
+      &.address {
+        font-size: 15px;
+      }
       color: rgba($color: $sub, $alpha: 0.5);
       @include phone {
-        font-size: 14px;
+        font-size: 14px !important;
+        &.address {
+          font-size: 13px !important;
+        }
       }
     }
     h2 {

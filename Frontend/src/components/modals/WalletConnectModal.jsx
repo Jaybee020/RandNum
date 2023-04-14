@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useSetRecoilState } from "recoil";
-import { addressAtom, providerAtom } from "../atoms/appState";
-import Icon from "../components/common/Icon";
-import { MyAlgo, MyAlgoInst, Pera, PeraInst } from "../utils";
+import { addressAtom, providerAtom } from "../../atoms/appState";
+import Icon from "../common/Icon";
+import { MyAlgoInst, PeraInst } from "../../utils";
 
 const WalletConnectModal = ({ closeConnectModal }) => {
   const [option, setOption] = useState("");

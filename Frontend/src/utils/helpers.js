@@ -1,8 +1,8 @@
-import { decodeAddress } from "algosdk";
+import { isValidAddress } from "algosdk";
 import axios from "axios";
 import avatars from "../assets/avatars";
 
-const randAvatar = () => avatars[Math.floor(Math.random() * avatars.length)];
+const randAvatar = index => avatars[index];
 
 const constrictAddr = (address, start = 5, end = 5) => {
   if (address && typeof address === "string") {
@@ -14,16 +14,8 @@ const constrictAddr = (address, start = 5, end = 5) => {
   }
 };
 
-const getBalance = async (
-  address = "IYG2CGWR36BMBDSE4BOIXD7UZZJAT5QETQONOACDQUZWWDZFMJX6QJA6II"
-) => {
-  if (!address) return 0;
-
-  try {
-    decodeAddress(address);
-  } catch {
-    return 0;
-  }
+const getBalance = async address => {
+  if (!isValidAddress(address)) return 0;
 
   try {
     const balance = await axios
