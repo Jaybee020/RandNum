@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { useSetRecoilState } from "recoil";
-import { addressAtom, providerAtom } from "../../atoms/appState";
 import Icon from "../common/Icon";
+import { useSetRecoilState } from "recoil";
+import { Question } from "phosphor-react";
 import { MyAlgoInst, PeraInst } from "../../utils";
+import { addressAtom, providerAtom } from "../../atoms/appState";
+import { Tooltip } from "react-tooltip";
 
 const WalletConnectModal = ({ closeConnectModal }) => {
   const [option, setOption] = useState("");
@@ -42,21 +44,47 @@ const WalletConnectModal = ({ closeConnectModal }) => {
       <div className="connect-wallet-options">
         {[
           { type: "pera", name: "Pera wallet" },
-          { type: "myAlgo", name: "My Algo wallet" },
+          { type: "myAlgo", name: "My Algo wallet", disabled: true },
         ].map((opt, index) => {
           return (
             <div
               key={index}
-              className="connect-wallet-option"
-              onClick={() => setOption(opt?.type)}
+              className={`connect-wallet-option ${
+                opt.disabled ? "connect-wallet-option--disabled" : ""
+              }`}
+              onClick={() => {
+                if (!opt.disabled) setOption(opt.type);
+              }}
             >
               <div className="connect-wallet-option__details">
                 {Icon[opt.type]()}
                 <p>{opt.name}</p>
               </div>
-              <div className="connect-wallet-option__radio">
-                {opt.type === option ? <Icon.Checked /> : null}
-              </div>
+              {!opt?.disabled ? (
+                <div className="connect-wallet-option__radio">
+                  {opt.type === option ? <Icon.Checked /> : null}
+                </div>
+              ) : (
+                <>
+                  <div className="connect-wallet-option__unavailable">
+                    <p>Unavailable</p>
+                    <Question size={19.6} color="#bbb" weight="fill" />
+                  </div>
+
+                  <Tooltip
+                    className="tooltip-elem"
+                    anchorSelect=".connect-wallet-option__unavailable"
+                  >
+                    <div className="tooltip">
+                      <p>
+                        My Ago wallet was hacked recently
+                        <br />
+                        and it is currently unsafe to use
+                      </p>
+                    </div>
+                  </Tooltip>
+                </>
+              )}
             </div>
           );
         })}

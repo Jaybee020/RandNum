@@ -23,16 +23,40 @@
     display: flex;
   }
 
-  .error-message {
+  .spinner-container {
+    width: 540px;
+    max-width: 45%;
+    @extend %row-middle;
+    @include ipad {
+      width: 100%;
+      max-width: 100%;
+    }
+  }
+
+  .error-message,
+  .waiting-message {
     display: flex;
     font-size: 12px;
     padding-left: 6px;
-    margin-bottom: 8px;
+    // margin-bottom: 8px;
     color: #d85841;
     text-align: center;
     flex-direction: row;
     align-items: center;
     font-family: $sans1med;
+    margin-top: -10px;
+    margin-bottom: -6px;
+    p {
+      line-height: 1.4;
+      text-align: center;
+    }
+  }
+  .waiting-message {
+    font-size: 14px;
+    color: #232323;
+    margin-top: -4px;
+    padding-left: 0px;
+    margin-bottom: -4px;
     p {
       text-align: center;
     }
@@ -56,8 +80,9 @@
     justify-content: space-between;
 
     &-title {
+      margin-top: -10px;
       font-size: 30px;
-      margin-bottom: 16px;
+      margin-bottom: 6px;
       font-family: $sans1med;
       @include tablet {
         margin-bottom: 6px;
@@ -80,6 +105,7 @@
         gap: 20px;
         width: 540px;
         max-width: 45%;
+        flex-wrap: wrap;
         flex-direction: row;
 
         @include ipad {

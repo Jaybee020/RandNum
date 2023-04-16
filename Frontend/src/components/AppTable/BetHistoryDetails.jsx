@@ -10,7 +10,6 @@ import { Link } from "react-router-dom";
 const BetHistoryDetails = ({ bet, closeHistoryTab }) => {
   const { fetching, errorHistory } = useApp();
   const { gameParams } = bet || {};
-  console.log(bet);
 
   return (
     <>
@@ -102,6 +101,7 @@ const BetHistoryDetails = ({ bet, closeHistoryTab }) => {
             <li className="bet-details__list-item">
               <p className="key">Transaction Id</p>
               <a
+                aria-label="transaction-id"
                 target="_blank"
                 rel="noreferrer"
                 className="value"

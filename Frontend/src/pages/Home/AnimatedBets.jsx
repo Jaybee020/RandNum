@@ -4,12 +4,15 @@ import { useApp } from "../../context/AppContext";
 import { gsap } from "gsap";
 import Icon from "../../components/common/Icon";
 import dayjs from "dayjs";
+import { useNavigate } from "react-router-dom";
 
 const AnimatedBets = () => {
-  const { fetching, recentBets } = useApp();
-
   let betObj = [];
   let boxRef = useRef([]);
+  const linkRef = useRef([]);
+  const navigation = useNavigate();
+  const { fetching, recentBets } = useApp();
+
   useEffect(() => {
     if (fetching) return;
 
@@ -44,13 +47,13 @@ const AnimatedBets = () => {
     loop(boxHeight);
 
     function loop(boxHeight) {
-      gsap.delayedCall(8, () => {
+      gsap.delayedCall(10, () => {
         animate(boxHeight);
         loop(boxHeight);
       });
     }
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, [fetching]);
 
   return (
@@ -58,6 +61,12 @@ const AnimatedBets = () => {
       {recentBets?.map((bet, index) => (
         <div
           key={bet?._id}
+          onClick={e => {
+            if (linkRef.current && linkRef.current.includes(e.target)) {
+              return;
+            }
+            navigation("/history/" + bet?._id);
+          }}
           className="home-page__recent-bets__card animated"
           ref={el => (boxRef.current[index] = el)}
         >
@@ -101,8 +110,10 @@ const AnimatedBets = () => {
             <div className="details__row">
               <p>Txn Reference</p>
               <a
+                aria-label="transaction-reference"
                 target="_blank"
                 rel="noreferrer"
+                ref={el => (linkRef.current[index] = el)}
                 href={
                   bet?.txReference
                     ? `https://testnet.algoexplorer.io/tx/${bet?.txReference}`

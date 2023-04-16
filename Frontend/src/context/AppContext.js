@@ -5,9 +5,13 @@ import dayjs from "dayjs";
 import _ from "lodash";
 import { isToday } from "../helpers/date";
 import { mode } from "../helpers/array";
+import { addressAtom } from "../atoms/appState";
+import { useRecoilValue } from "recoil";
+import { getBalance } from "../utils/helpers";
 
 export const AppContext = createContext({
   search: "",
+  acctBalance: 0,
   ticketSold: 0,
   mostRecurring: 0,
   recentBets: [],
@@ -24,8 +28,11 @@ export default function AppProvider({ children }) {
   const [search, setSearch] = useState("");
   const [ticketSold, setTicketSold] = useState(0);
   const [recentBets, setRecentBets] = useState([]);
+  const [acctBalance, setAcctBalance] = useState(0);
   const [mostRecurring, setMostRecurring] = useState(0);
   const [filteredBetsHistory, setFilteredBetsHistory] = useState([]);
+
+  const walletAddress = useRecoilValue(addressAtom);
 
   const { data, isLoading, error, refetch } = useQuery(
     "recentGames",
@@ -42,6 +49,24 @@ export default function AppProvider({ children }) {
       refetchOnReconnect: "always",
     }
   );
+
+  useEffect(() => {
+    if (!walletAddress) return;
+
+    const getAccountBalance = async () => {
+      const balance = await getBalance(walletAddress);
+      setAcctBalance(
+        isNaN(balance) ||
+          balance === Infinity ||
+          balance === -Infinity ||
+          balance === 0
+          ? 0
+          : balance
+      );
+    };
+
+    getAccountBalance();
+  }, [walletAddress]);
 
   useEffect(() => {
     if (!data) return;
@@ -100,6 +125,7 @@ export default function AppProvider({ children }) {
         setSearch,
         recentBets,
         ticketSold,
+        acctBalance,
 
         mostRecurring,
         filteredBetsHistory,

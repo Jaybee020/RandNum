@@ -1,17 +1,17 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
 import { useQuery } from "react-query";
 import { useRecoilValue } from "recoil";
 import { MultiSigner } from "../../utils";
+import { useEffect, useState } from "react";
 import Icon from "../../components/common/Icon";
+import { SpinnerCircular } from "spinners-react";
 import useAppModal from "../../hooks/useAppModal";
 import NewGameModal from "../../components/modals/NewGameModal";
 import { addressAtom, providerAtom } from "../../atoms/appState";
-import { SpinnerCircular } from "spinners-react";
-import dayjs from "dayjs";
 import WalletConnectModal from "../../components/modals/WalletConnectModal";
 
 const LottoUserActions = ({
+  phase,
   lottoError,
   lottoDetails,
   fetchingLotto,
@@ -22,7 +22,6 @@ const LottoUserActions = ({
   const [loading, setLoading] = useState(false);
   const provider = useRecoilValue(providerAtom);
   const walletAddr = useRecoilValue(addressAtom);
-  const [phase, setPhase] = useState("ticketing");
   const [winStatus, setWinStatus] = useState(null);
   const [loadingState, setLoadingState] = useState("");
   const [StartGameModal, closeNewGameModal, openNewGameModal] = useAppModal(
@@ -35,25 +34,37 @@ const LottoUserActions = ({
       axios
         .get(`/getPlayerGuessNumber/${walletAddr}`)
         .then(response => response?.data?.data?.data),
-    { refetchOnWindowFocus: false, enabled: !!walletAddr }
+    { refetchOnWindowFocus: false, retry: false, enabled: !!walletAddr }
   );
+
+  const refetchDetails = async () => {
+    await refetch();
+    await refetchCurrentGame("Refetching amount of tickets bought");
+  };
 
   useEffect(() => {
     if (data && !isNaN(data)) {
       setRandNum(data);
+    } else {
+      setRandNum(1);
     }
   }, [data]);
+
   useEffect(() => {
-    if (!data || isNaN(data)) {
-      refetch();
+    if (!!walletAddr) {
+      refetchDetails();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, [walletAddr]);
 
   const setNumber = async () => {
     if (loading) return;
     if (Number(data) === Number(randNum)) {
       setError("This is your current guess number");
+      return;
+    }
+    if (lottoDetails?.playersTicketBought === lottoDetails?.maxPlayers) {
+      setError("Max players reached for this game");
       return;
     }
 
@@ -68,12 +79,10 @@ const LottoUserActions = ({
         .then(response => response?.data?.data);
 
       await MultiSigner(txnsArr, provider);
-      refetch();
+      await refetchDetails();
     } catch (error) {
       console.log(error);
-      setError(
-        error?.message || "An error occurred while setting your guess number"
-      );
+      setError("An error occurred while setting your guess number");
     } finally {
       setLoading(false);
     }
@@ -89,9 +98,7 @@ const LottoUserActions = ({
         .post(`/generateLuckyNumber`, null)
         .then(response => console.log(response));
     } catch (error) {
-      setError(
-        error?.message || "An error occurred while generating lucky number"
-      );
+      setError("An error occurred while generating lucky number");
     } finally {
       setLoadingState("");
     }
@@ -99,17 +106,24 @@ const LottoUserActions = ({
 
   const checkWinStatus = async () => {
     if (loadingState) return;
-
     setError("");
     setLoadingState("check-win-status");
+
     try {
       await axios
         .post(`/checkUserWin`, {
           playerAddr: walletAddr,
         })
-        .then(response => setWinStatus(!!response.data.status));
+        .then(response => {
+          setWinStatus(!!response.data.status);
+        });
+      await refetchDetails();
     } catch (error) {
-      setError(error?.message || "An error occurred while checking win status");
+      if (data) {
+        setWinStatus(Number(data) === Number(lottoDetails?.luckyNumber));
+      } else {
+        setError("An error occurred while checking win status");
+      }
     } finally {
       setLoadingState("");
     }
@@ -117,6 +131,7 @@ const LottoUserActions = ({
 
   const changeNumber = async () => {
     if (loadingState) return;
+
     if (Number(data) === Number(randNum)) {
       setError("This is your current guess number");
       return;
@@ -124,45 +139,26 @@ const LottoUserActions = ({
 
     setError("");
     setLoadingState("change-number");
+    const newGuessNumber = isNaN(randNum) ? 1 : Number(randNum);
     try {
-      await axios
+      const txnsArr = await axios
         .post(`/changePlayerGuessNumber`, {
+          newGuessNumber,
           playerAddr: walletAddr,
-          newGuessNumber: isNaN(randNum) ? 1 : Number(randNum),
         })
-        .then(response => response?.data?.data);
+        .then(response => {
+          return response?.data?.data;
+        });
+
+      if (txnsArr.length > 0) await MultiSigner(txnsArr, provider);
+      setRandNum(newGuessNumber);
+      await refetchDetails();
     } catch (error) {
-      setError(
-        error?.message || "An error occurred while changing your guess number"
-      );
+      setError("An error occurred while changing your guess number");
     } finally {
       setLoadingState("");
     }
   };
-
-  useEffect(() => {
-    const isTicketing = dayjs(Date.now()).isBetween(
-      lottoDetails?.ticketingStart * 1000,
-      (lottoDetails?.ticketingStart + lottoDetails?.ticketingDuration) * 1000,
-      "milliseconds",
-      "[)"
-    );
-
-    const isLive = dayjs(Date.now()).isBetween(
-      (lottoDetails?.ticketingStart + lottoDetails?.ticketingDuration) * 1000,
-      lottoDetails?.withdrawalStart * 1000,
-      "milliseconds",
-      "[)"
-    );
-
-    if (isTicketing) {
-      setPhase("ticketing");
-    } else if (isLive) {
-      setPhase("live");
-    } else {
-      setPhase("withdrawal");
-    }
-  }, [lottoDetails]);
 
   return (
     !fetchingLotto &&
@@ -235,84 +231,100 @@ const LottoUserActions = ({
               </div>
             )}
 
-            {(phase === "live" || phase === "withdrawal") && (
-              <div className="lotto-page__actions guessNum">
-                <div className="lotto-place-bet">
-                  {lottoDetails?.luckyNumber && lottoDetails?.luckyNumber !== 0
-                    ? phase === "withdrawal" &&
-                      data && (
-                        <button className="place-bet" onClick={checkWinStatus}>
-                          <p
-                            style={{
-                              marginRight:
-                                loadingState === "check-win-status"
-                                  ? "7px"
-                                  : "0px",
-                            }}
+            {(phase === "live" || phase === "withdrawal") &&
+              (!isLoading ? (
+                <div className="lotto-page__actions guessNum">
+                  <div className="lotto-place-bet">
+                    {lottoDetails?.luckyNumber &&
+                    lottoDetails?.luckyNumber !== 0
+                      ? phase === "withdrawal" &&
+                        data && (
+                          <button
+                            className="place-bet"
+                            onClick={checkWinStatus}
                           >
-                            Check win status{" "}
-                            {winStatus !== null
-                              ? winStatus
-                                ? ": Won"
-                                : ": Lost"
-                              : null}
-                          </p>
-                          {loadingState === "check-win-status" && (
-                            <SpinnerCircular
-                              size={14}
-                              color="#444"
-                              secondaryColor="#aaa"
-                            />
-                          )}
-                        </button>
-                      )
-                    : phase === "live" &&
-                      !lottoDetails?.luckyNumber && (
-                        <button
-                          className="place-bet"
-                          onClick={generateLuckyNum}
-                        >
-                          <p
-                            style={{
-                              marginRight:
-                                loadingState === "generate-lucky-num"
-                                  ? "7px"
-                                  : "0px",
-                            }}
+                            <p
+                              style={{
+                                marginRight:
+                                  loadingState === "check-win-status"
+                                    ? "7px"
+                                    : "0px",
+                              }}
+                            >
+                              Bet outcome
+                              {winStatus !== null
+                                ? winStatus
+                                  ? ": Won"
+                                  : ": Lost"
+                                : null}
+                            </p>
+                            {loadingState === "check-win-status" && (
+                              <SpinnerCircular
+                                size={14}
+                                color="#444"
+                                secondaryColor="#aaa"
+                              />
+                            )}
+                          </button>
+                        )
+                      : phase === "live" &&
+                        !lottoDetails?.luckyNumber && (
+                          <button
+                            className="place-bet"
+                            onClick={generateLuckyNum}
                           >
-                            Generate Lucky Number
-                          </p>
-                          {loadingState === "generate-lucky-num" && (
-                            <SpinnerCircular
-                              size={14}
-                              color="#444"
-                              secondaryColor="#aaa"
-                            />
-                          )}
-                        </button>
-                      )}
+                            <p
+                              style={{
+                                marginRight:
+                                  loadingState === "generate-lucky-num"
+                                    ? "7px"
+                                    : "0px",
+                              }}
+                            >
+                              Generate Lucky Number
+                            </p>
+                            {loadingState === "generate-lucky-num" && (
+                              <SpinnerCircular
+                                size={14}
+                                color="#444"
+                                secondaryColor="#aaa"
+                              />
+                            )}
+                          </button>
+                        )}
 
-                  {data && (
-                    <button
-                      className="place-bet"
-                      style={{
-                        cursor: "default",
-                      }}
-                    >
-                      Current guess: {data}
-                    </button>
-                  )}
-
-                  {phase === "withdrawal" &&
-                    lottoDetails?.playersTicketBought ===
-                      lottoDetails?.playersTicketChecked && (
-                      <button className="place-bet" onClick={openNewGameModal}>
-                        Start new game
+                    {data && (
+                      <button
+                        className="place-bet"
+                        style={{
+                          cursor: "default",
+                        }}
+                      >
+                        Your guess: {data}
                       </button>
                     )}
+
+                    {phase === "withdrawal" &&
+                      lottoDetails?.playersTicketBought ===
+                        lottoDetails?.playersTicketChecked && (
+                        <button
+                          className="place-bet"
+                          onClick={openNewGameModal}
+                        >
+                          Start new game
+                        </button>
+                      )}
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="spinner-container">
+                  <SpinnerCircular
+                    size={30}
+                    color="#444"
+                    secondaryColor="#aaa"
+                  />
+                </div>
+              ))}
 
             {!!error && (
               <div className="error-message">
@@ -326,11 +338,24 @@ const LottoUserActions = ({
           </div>
         )}
 
-        <StartGameModal isCentered={true} newGame={true && !!walletAddr}>
+        {phase === "withdrawal" &&
+          walletAddr &&
+          lottoDetails?.playersTicketBought !==
+            lottoDetails?.playersTicketChecked && (
+            <div className="waiting-message">
+              <p>
+                {/*  */}
+                Waiting for players to check their tickets before next game
+                starts
+              </p>
+            </div>
+          )}
+
+        <StartGameModal isCentered={true} newGame={!!walletAddr}>
           {!!walletAddr ? (
             <NewGameModal
               closeNewGameModal={closeNewGameModal}
-              refetchCurrentGame={refetchCurrentGame}
+              refetchCurrentGame={refetchDetails}
             />
           ) : (
             <WalletConnectModal closeConnectModal={closeNewGameModal} />

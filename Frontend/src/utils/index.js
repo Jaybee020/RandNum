@@ -1,4 +1,4 @@
-import algosdk from "algosdk";
+import algosdk, { waitForConfirmation } from "algosdk";
 import { ALGOD_CLIENT } from "./constants";
 import MyAlgoWallet from "@randlabs/myalgo-connect";
 import { PeraWalletConnect } from "@perawallet/connect";
@@ -84,24 +84,20 @@ export const MultiSigner = async (txns, provider) => {
       algosdk.decodeUnsignedTransaction(new Uint8Array(txn)).toByte()
     );
 
-    await MyAlgoInst.wallet
-      .signTransaction(decodedTxns)
-      .then(async signedTxns => {
-        const blobArray = signedTxns.map(item => item.blob);
+    const signedTxns = await MyAlgoInst.wallet.signTransaction(decodedTxns);
 
-        ALGOD_CLIENT["testnet"]
-          .sendRawTransaction(blobArray)
-          .do()
-          .then(submittedTxn => {
-            console.log("done");
-          })
-          .catch(error => {
-            console.log(error);
-          });
-      })
-      .catch(error => {
-        console.log(error);
-      });
+    const blobArray = signedTxns.map(item => item.blob);
+
+    const submittedTxn = ALGOD_CLIENT["testnet"]
+      .sendRawTransaction(blobArray)
+      .do();
+
+    console.log("Submitted", submittedTxn);
+    await waitForConfirmation(
+      ALGOD_CLIENT["testnet"],
+      submittedTxn?.txId,
+      1000
+    );
   } else if (provider === "pera") {
     const decodedTxns = txns.map(txn => {
       return {
@@ -109,21 +105,16 @@ export const MultiSigner = async (txns, provider) => {
       };
     });
 
-    await PeraInst.wallet
-      .signTransaction([decodedTxns])
-      .then(async signedTxns => {
-        ALGOD_CLIENT["testnet"]
-          .sendRawTransaction(signedTxns)
-          .do()
-          .then(submittedTxn => {
-            console.log("Submitted", submittedTxn);
-          })
-          .catch(error => {
-            console.log(error);
-          });
-      })
-      .catch(error => {
-        console.log(error);
-      });
+    const signedTxns = await PeraInst.wallet.signTransaction([decodedTxns]);
+    const submittedTxn = await ALGOD_CLIENT["testnet"]
+      .sendRawTransaction(signedTxns)
+      .do();
+
+    console.log("Submitted", submittedTxn);
+    await waitForConfirmation(
+      ALGOD_CLIENT["testnet"],
+      submittedTxn?.txId,
+      1000
+    );
   }
 };

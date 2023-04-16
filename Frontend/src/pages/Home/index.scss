@@ -227,10 +227,12 @@
       height: 254px;
       padding: 22px;
       color: $main;
+      display: flex;
       background: $sub;
       margin-bottom: 24px;
       border-radius: 18px;
       flex-direction: column;
+      cursor: pointer;
 
       &.animated {
         top: 0px;

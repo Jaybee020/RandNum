@@ -51,7 +51,7 @@ const ConnectedWallet = () => {
           align="end"
           transition
           menuButton={
-            <button className="options-btn">
+            <button className="options-btn" aria-label="disconnect-menu-btn">
               <Icon.CaretDown />
             </button>
           }

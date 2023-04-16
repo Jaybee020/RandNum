@@ -32,6 +32,7 @@ const Navbar = () => {
           <button
             className="connect-wallet-btn"
             onClick={openConnectModal}
+            aria-label="connect-wallet"
             style={{
               width: windowWidth > 570 ? "auto" : "34px",
               height: windowWidth > 570 ? "auto" : "34px",

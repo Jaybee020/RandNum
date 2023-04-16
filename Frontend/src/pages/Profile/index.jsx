@@ -16,6 +16,7 @@ const Profile = () => {
   useEffect(() => {
     const addr = !address ? walletAddress : address;
     setAddr(addr);
+    // eslint-disable-next-line
   }, []);
 
   return (

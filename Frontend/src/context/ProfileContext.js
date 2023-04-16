@@ -60,9 +60,8 @@ export default function ProfileProvider({ children }) {
   };
 
   useEffect(() => {
-    console.log(addr);
-    refetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (isValidAddress(addr)) refetchProfile();
+    // eslint-disable-next-line
   }, [addr]);
 
   useEffect(() => {
@@ -71,7 +70,7 @@ export default function ProfileProvider({ children }) {
       let totalGamesWon = 0;
       let totalAmountSpent = 0;
 
-      profileData?.map(bet => {
+      profileData?.forEach(bet => {
         const numGuessed = bet?.userInteractions
           .filter(act => act.action === "enter_game")
           ?.sort((a, b) => a?.round - b?.round)[0]?.value;
@@ -95,12 +94,10 @@ export default function ProfileProvider({ children }) {
     };
     processTxns();
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, [profileData, profile]);
 
   useEffect(() => {
-    // console.log(profile && Object?.values(profile)[0]);
-
     if (!profile) return;
     setProfileData(Object?.values(profile) ?? []);
   }, [profile]);

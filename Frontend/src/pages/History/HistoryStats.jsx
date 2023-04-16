@@ -1,4 +1,6 @@
 import millify from "millify";
+import { Link } from "react-router-dom";
+import { Strategy } from "phosphor-react";
 import Skeleton from "react-loading-skeleton";
 import Icon from "../../components/common/Icon";
 import { useApp } from "../../context/AppContext";
@@ -79,7 +81,7 @@ const HistoryStats = () => {
           </div>
         </div>
         <div className="history-page__stat no-fill">
-          <p>Recent game</p>
+          <p>Current game</p>
           {fetching || errorHistory ? (
             <h2>
               <Skeleton
@@ -90,24 +92,12 @@ const HistoryStats = () => {
               />
             </h2>
           ) : (
-            <a
-              href={`https://testnet.algoexplorer.io/tx/${
-                (betsHistory || [])[0]?.txReference
-              }`}
-              rel="noreferrer"
-              target="_blank"
-              className="row"
-            >
-              <Icon.ArrowUpRight
-                size={
-                  windowWidth > 858
-                    ? "22px"
-                    : windowWidth > 570
-                    ? "20px"
-                    : "15px"
-                }
+            <Link to={`/lotto/`} className="row">
+              <Strategy
+                weight="fill"
+                size={windowWidth > 858 ? 29 : windowWidth > 570 ? 27 : 22}
               />
-            </a>
+            </Link>
           )}
         </div>
       </div>

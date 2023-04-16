@@ -1,13 +1,11 @@
 import gsap from "gsap";
-import dayjs from "dayjs";
+import HomeBet from "./HomeBet";
+import AnimatedBets from "./AnimatedBets";
 import { useEffect, useRef } from "react";
 import Icon from "../../components/common/Icon";
 import { useApp } from "../../context/AppContext";
-import { constrictAddr } from "../../utils/helpers";
 import EmptyState from "../../components/common/EmptyState";
 import { useWindowWidth } from "@react-hook/window-size/throttled";
-import HomeBet from "./HomeBet";
-import AnimatedBets from "./AnimatedBets";
 
 const HomeRecentBets = () => {
   const windowWidth = useWindowWidth();
@@ -55,7 +53,7 @@ const HomeRecentBets = () => {
       });
     }
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, [fetching]);
 
   return (
@@ -87,8 +85,8 @@ const HomeRecentBets = () => {
           </>
         ) : (
           <>
-            {recentBets?.map(bet => (
-              <HomeBet key={bet?._id} bet={bet} />
+            {recentBets?.map((bet, index) => (
+              <HomeBet key={bet?._id} bet={bet} index={index} />
             ))}
           </>
         )}

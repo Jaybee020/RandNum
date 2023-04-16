@@ -7,8 +7,6 @@ import Icon from "../common/Icon";
 const ProfileBetDetails = ({ details, closeDetailsTab }) => {
   const { lottoParams, userInteractions } = details || {};
 
-  console.log(details);
-
   return (
     <>
       <div className="app-modal__header">
@@ -28,6 +26,7 @@ const ProfileBetDetails = ({ details, closeDetailsTab }) => {
 
                   {key === "gameMaster" ? (
                     <a
+                      aria-label="game-master"
                       target="_blank"
                       rel="noreferrer"
                       className="value"
@@ -103,6 +102,7 @@ const ProfileBetDetails = ({ details, closeDetailsTab }) => {
                                 action?.action?.replaceAll("_", " ")}
                             </p>
                             <a
+                              aria-label="transaction-id"
                               target="_blank"
                               rel="noreferrer"
                               href={

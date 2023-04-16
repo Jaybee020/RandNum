@@ -1,12 +1,15 @@
 import axios from "axios";
+import millify from "millify";
 import Icon from "../common/Icon";
 import { useRecoilValue } from "recoil";
-import { useEffect, useState } from "react";
-import { Menu, MenuItem } from "@szhsin/react-menu";
-import { addressAtom, providerAtom } from "../../atoms/appState";
-import { SpinnerCircular } from "spinners-react";
 import { MultiSigner } from "../../utils";
-import algosdk from "algosdk";
+import { useNetworkState } from "react-use";
+import { useEffect, useState } from "react";
+import { SpinnerCircular } from "spinners-react";
+import { useApp } from "../../context/AppContext";
+import { Menu, MenuItem } from "@szhsin/react-menu";
+import { getMinAmountToStartGame } from "../../utils/helpers";
+import { addressAtom, providerAtom } from "../../atoms/appState";
 
 const ticketingOptions = [
   "In 10 minutes",
@@ -15,6 +18,7 @@ const ticketingOptions = [
   "In 2 hours",
 ];
 const withdrawalOptions = [
+  "15 minutes after",
   "1 hour after",
   "2 hours after",
   "3 hours after",
@@ -22,6 +26,8 @@ const withdrawalOptions = [
 ];
 
 const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
+  const network = useNetworkState();
+  const { acctBalance } = useApp();
   const address = useRecoilValue(addressAtom);
   const provider = useRecoilValue(providerAtom);
 
@@ -35,9 +41,9 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
   const [maxGuessNumber, setMaxGuessNumber] = useState(10000);
   const [maxPlayersAllowed, setMaxPlayersAllowed] = useState(2);
   const [ticketingStart, setTicketStart] = useState("In 10 minutes");
-  const [withdrawalStart, setWithdrawalStart] = useState("1 hour after");
+  const [withdrawalStart, setWithdrawalStart] = useState("15 minutes after");
 
-  const ticketingValue = () =>
+  const ticketingDateValue = () =>
     Math.round(
       Date.now() / 1000 +
         (ticketingStart === "In 10 minutes"
@@ -49,7 +55,7 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
           : 7200)
     );
 
-  const withdrawalValue = () =>
+  const withdrawalDateValue = () =>
     Math.round(
       Date.now() / 1000 +
         (ticketingStart === "In 10 minutes"
@@ -60,7 +66,9 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
           ? 3600
           : 7200)
     ) +
-    (withdrawalStart === "1 hour after"
+    (withdrawalStart === "15 minutes after"
+      ? 900
+      : withdrawalStart === "1 hour after"
       ? 3600
       : withdrawalStart === "2 hours after"
       ? 7200
@@ -69,12 +77,16 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
       : 14400);
 
   const startNewGame = async () => {
+    if (acctBalance < gameCost) {
+      setError("Insufficient balance!");
+      return;
+    }
+
     if (loading) return;
     if (!address) return setError("Please connect your wallet first!");
 
     const params = {
-      winMultiplier:
-        winMultiplier > 10 ? 10 : winMultiplier < 0 ? 2 : winMultiplier,
+      winMultiplier: winMultiplier < 0 ? 2 : winMultiplier,
       ticketFee: (ticketFee > 10 ? 10 : ticketFee < 0 ? 1 : ticketFee) * 1e6,
       ticketingDuration:
         durationType === "m"
@@ -87,16 +99,11 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
           : maxGuessNumber < 0
           ? 100
           : maxGuessNumber,
-      maxPlayersAllowed:
-        maxPlayersAllowed > 50
-          ? 50
-          : maxPlayersAllowed < 2
-          ? 2
-          : maxPlayersAllowed,
+      maxPlayersAllowed: maxPlayersAllowed < 2 ? 2 : maxPlayersAllowed,
 
       gameMasterAddr: address,
-      ticketingStart: ticketingValue(),
-      withdrawalStart: withdrawalValue(),
+      ticketingStart: ticketingDateValue(),
+      withdrawalStart: withdrawalDateValue(),
     };
 
     setError("");
@@ -105,12 +112,14 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
       const txnsArr = await axios
         .post(`/endCurrentAndCreateNewGame`, params)
         .then(response => {
-          console.log(response);
           return response?.data?.txns;
         });
 
       if (txnsArr?.length) await MultiSigner(txnsArr, provider);
-      refetchCurrentGame();
+
+      console.log("New game started successfully!");
+
+      await refetchCurrentGame();
       closeNewGameModal();
     } catch (error) {
       console.log(error);
@@ -140,8 +149,28 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
 
   useEffect(() => {
     handleDurationChange();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, [durationType]);
+
+  // Calculate the minimum amount required to start a game
+  const [gameCost, setGameCost] = useState(0);
+  useEffect(() => {
+    if (!network?.online) return;
+    const getMinCost = async () => {
+      const cost = await getMinAmountToStartGame(
+        isNaN(ticketFee) || ticketFee < 1 ? 1 * 1e6 : ticketFee * 1e6,
+        isNaN(winMultiplier) || winMultiplier < 2 ? 2 : winMultiplier,
+        isNaN(maxPlayersAllowed) || maxPlayersAllowed < 2
+          ? 2
+          : maxPlayersAllowed
+      );
+
+      setGameCost(cost);
+    };
+
+    getMinCost();
+    // eslint-disable-next-line
+  }, [winMultiplier, ticketFee, maxPlayersAllowed]);
 
   return (
     <>
@@ -162,29 +191,16 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
           <div className="input-block sm">
             <input
               min={0}
-              max={10}
               type="number"
               maxLength={3}
               onBlur={e => {
-                setMaxPlayersAllowed(
-                  e.target.value > 10
-                    ? 10
-                    : e.target.value < 0
-                    ? 0
-                    : e.target.value
-                );
+                setWinMultiplier(e.target.value < 2 ? 2 : e.target.value);
               }}
-              placeholder="max 10"
+              placeholder="Min 2"
               name="winMultiplier"
               value={winMultiplier}
               onChange={e =>
-                setWinMultiplier(
-                  e.target.value > 10
-                    ? 50
-                    : e.target.value < 0
-                    ? 2
-                    : e.target.value
-                )
+                setWinMultiplier(e.target.value < 0 ? 0 : e.target.value)
               }
             />
           </div>
@@ -195,29 +211,16 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
           <div className="input-block sm">
             <input
               min={2}
-              max={50}
               type="number"
               maxLength={3}
               onBlur={e => {
-                setMaxPlayersAllowed(
-                  e.target.value > 50
-                    ? 50
-                    : e.target.value < 2
-                    ? 2
-                    : e.target.value
-                );
+                setMaxPlayersAllowed(e.target.value < 2 ? 2 : e.target.value);
               }}
-              placeholder="max 50"
+              placeholder="Min 2"
               name="maxPlayersAllowed"
               value={maxPlayersAllowed}
               onChange={e =>
-                setMaxPlayersAllowed(
-                  e.target.value > 50
-                    ? 50
-                    : e.target.value < 0
-                    ? 0
-                    : e.target.value
-                )
+                setMaxPlayersAllowed(e.target.value < 0 ? 0 : e.target.value)
               }
             />
           </div>
@@ -242,7 +245,7 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
                 );
               }}
               value={maxGuessNumber}
-              placeholder="max 10000"
+              placeholder="Max 10000"
               onChange={e =>
                 setMaxGuessNumber(
                   e.target.value > 10000 ? 10000 : e.target.value
@@ -257,7 +260,7 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
           <div className="input-block ticket">
             <input
               type="number"
-              placeholder="min 1"
+              placeholder="Min 1"
               name="ticketFee"
               maxLength={3}
               value={ticketFee}
@@ -425,6 +428,33 @@ const NewGameModal = ({ closeNewGameModal, refetchCurrentGame }) => {
                   );
                 })}
               </Menu>
+            </div>
+          </div>
+        </div>
+
+        <div className="calculations">
+          <div className="calculations-row">
+            <p className="key">Account balance: </p>
+
+            <div className="amount">
+              <Icon.Algo size={15} />
+              <p className="value">
+                {millify(acctBalance, {
+                  precision: 2,
+                })}
+              </p>
+            </div>
+          </div>
+          <div
+            className={`calculations-row ${
+              gameCost < acctBalance ? "valid" : "error"
+            }`}
+          >
+            <p className="key">Min amount required: </p>
+
+            <div className="amount">
+              <Icon.Algo size={15} />
+              <p className="value">{gameCost}</p>
             </div>
           </div>
         </div>

@@ -1,10 +1,23 @@
 import dayjs from "dayjs";
+import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Icon from "../../components/common/Icon";
 import { constrictAddr } from "../../utils/helpers";
 
-const HomeBet = ({ bet }) => {
+const HomeBet = ({ bet, index }) => {
+  const linkRef = useRef([]);
+  const navigation = useNavigate();
+
   return (
-    <div className="home-page__recent-bets__card">
+    <div
+      className="home-page__recent-bets__card"
+      onClick={e => {
+        if (linkRef.current && linkRef.current.includes(e.target)) {
+          return;
+        }
+        navigation("/history/" + bet?._id);
+      }}
+    >
       <div className="header">
         <div className="header__row">
           <div className="header__row__betId">
@@ -46,6 +59,8 @@ const HomeBet = ({ bet }) => {
           <a
             target="_blank"
             rel="noreferrer"
+            aria-label="transaction-reference"
+            ref={el => (linkRef.current[index] = el)}
             href={
               bet?.txReference
                 ? `https://testnet.algoexplorer.io/tx/${bet?.txReference}`
