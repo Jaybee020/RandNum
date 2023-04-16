@@ -69,17 +69,27 @@ export default function ProfileProvider({ children }) {
       let totalPnl = 0;
       let totalGamesWon = 0;
       let totalAmountSpent = 0;
+      let totalGamesPlayed = 0;
 
-      profileData?.forEach(bet => {
+      profileData?.forEach((bet, index) => {
         const numGuessed = bet?.userInteractions
           .filter(act => act.action === "enter_game")
           ?.sort((a, b) => a?.round - b?.round)[0]?.value;
         const wonBet = bet?.lottoParams?.luckyNumber === numGuessed;
 
-        totalGamesWon = wonBet ? totalGamesWon + 1 : totalGamesWon;
-        totalAmountSpent = totalAmountSpent + bet?.lottoParams?.ticketFee;
-        totalPnl =
-          totalPnl + (bet?.lottoParams?.ticketFee ?? 0) * (wonBet ? 1 : -1);
+        const playedGame = bet?.userInteractions.filter(
+          act => act.action !== "initiliaze_game_params"
+        )?.length;
+
+        console.log(playedGame, index);
+
+        if (playedGame > 0) {
+          totalGamesPlayed = totalGamesPlayed + 1;
+          totalGamesWon = wonBet ? totalGamesWon + 1 : totalGamesWon;
+          totalAmountSpent = totalAmountSpent + bet?.lottoParams?.ticketFee;
+          totalPnl =
+            totalPnl + (bet?.lottoParams?.ticketFee ?? 0) * (wonBet ? 1 : -1);
+        }
       });
 
       const balance = await getBalance(addr);
@@ -88,7 +98,7 @@ export default function ProfileProvider({ children }) {
         balance,
         pnl: totalPnl / 1e6,
         gamesWon: totalGamesWon,
-        gamesPlayed: profileData?.length,
+        gamesPlayed: totalGamesPlayed,
         amountSpent: totalAmountSpent / 1e6,
       });
     };

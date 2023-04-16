@@ -91,6 +91,11 @@ const ProfileTable = () => {
                 ?.sort((a, b) => a?.round - b?.round)[0]?.value;
               const wonBet = bet?.lottoParams?.luckyNumber === numGuessed;
 
+              const playedGame =
+                bet?.userInteractions.filter(
+                  act => act.action !== "initiliaze_game_params"
+                )?.length > 0;
+
               return (
                 <div
                   key={index}
@@ -114,14 +119,21 @@ const ProfileTable = () => {
                   </div>
 
                   <div className="app-table__row__item amt staked">
-                    <Icon.AlgoRound />
-                    <p>
-                      {!!bet?.lottoParams?.ticketFee
-                        ? millify((bet?.lottoParams?.ticketFee ?? 0) / 1e6, {
-                            precision: 1,
-                          })
-                        : "N/A"}
-                    </p>
+                    {playedGame && (
+                      <>
+                        <Icon.AlgoRound />
+                        <p>
+                          {!!bet?.lottoParams?.ticketFee
+                            ? millify(
+                                (bet?.lottoParams?.ticketFee ?? 0) / 1e6,
+                                {
+                                  precision: 1,
+                                }
+                              )
+                            : "N/A"}
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   <div className="app-table__row__item guessed">
