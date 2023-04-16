@@ -15,4 +15,6 @@ The backend folder contains the contracts folder. This folder house the pyteal l
 
 ## Frontend
 
-This is the official frontend of RandNum interacting with the express backend. It is written in React.Click [here](https://randnumber.netlify.app) to play.
+This is the official frontend of RandNum interacting with the express backend. It is written in React.Click [here](https://randnum.xyz) to play.
+
+There is a youtube video [here]("https://www.youtube.com/watch?v=yxtMKwMOq-Y")
