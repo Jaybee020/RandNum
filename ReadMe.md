@@ -1,6 +1,6 @@
 # RandNum
 
-RandNum is a guess the number lottery game built on the algorand blockchain.The game’s rules are straightforward: if players accurately predict the winning number, they win a prize. Winners receive their awards in the form of Algo, the native cryptocurrency of the Algorand network.
+RandNum is a guess the number lottery game built on the algorand blockchain.The game’s rules are straightforward: if players accurately predict the winning number, they win a prize. Winners receive their awards in the form of Algo or any other ASA used to fund the current game round.
 
 # Project Structure
 
