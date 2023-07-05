@@ -116,7 +116,7 @@ router.get("/currentGameParams", async (req: Request, res: Response) => {
     const data = await cache<GameParams>(
       key,
       [],
-      1,
+      1.5,
       getCurrentGameParam,
       client
     );
@@ -177,6 +177,7 @@ router.post(
         maxPlayersAllowed,
         maxGuessNumber,
         gameMasterAddr,
+        assetId,
       } = req.body;
       if (!gameMasterAddr) {
         return res.status(400).send({
@@ -192,7 +193,8 @@ router.post(
         winMultiplier,
         maxPlayersAllowed,
         maxGuessNumber,
-        gameMasterAddr
+        gameMasterAddr,
+        assetId
       );
       if (data.newGame.status) {
         return res.status(200).send({
@@ -222,11 +224,21 @@ router.post("/enterCurrentGame", async (req: Request, res: Response) => {
         message: "Please provide the required fields",
       });
     }
-    const ticketFee = (await getCurrentGameParam()).ticketFee;
+    const key = "Current Game Parameter";
+    const gameParams = await cache<GameParams>(
+      key,
+      [],
+      1.5,
+      getCurrentGameParam,
+      client
+    );
+    const ticketFee = gameParams.ticketFee;
+    const gameAsset = gameParams.game_asset;
     const data = await enterCurrentGame(
       playerAddr,
       Number(guessNumber),
-      Number(ticketFee)
+      Number(ticketFee),
+      gameAsset
     );
     return res.status(200).send({
       status: true,
@@ -328,7 +340,19 @@ router.post("/checkUserWin", async (req: Request, res: Response) => {
       message: "Please provide the required fields",
     });
   }
-  const data = await checkPlayerWinStatus(playerAddr);
+  const key = "Current Game Parameter";
+
+  const currentGameParams = await cache<GameParams>(
+    key,
+    [],
+    1,
+    getCurrentGameParam,
+    client
+  );
+  const data = await checkPlayerWinStatus(
+    playerAddr,
+    currentGameParams.game_asset
+  );
   if (!data) {
     return res.status(400).send({
       status: false,

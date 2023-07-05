@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAppCallTransactionsFromRound = exports.getAppCallTransactionsBetweenRounds = exports.getAppCallTransactions = exports.getAppGenerateRandomNumberTransactions = exports.getAppPayWinnerTransactionsFromRound = exports.getAppPayWinnerTransactionsBetweenRounds = exports.getAppPayWinnerTransactions = exports.getAppEnterGameTransactionsFromRound = exports.getAppEnterGameTransactionsBetweenRounds = exports.getAppEnterGameTransactions = exports.getAppCreateGameTransactionsFromRound = exports.getAppCreateGameTransactionsBetweenRounds = exports.getAppCreateGameTransactions = exports.getAppPayTransactionsFromRound = exports.getAppPayTransactionsBetweenRounds = exports.getAppPayTransactions = exports.getUserTransactionstoAppBetweenRounds = exports.getUserTransactionstoApp = exports.checkUserOptedIn = exports.getTransactionReference = exports.sendAlgo = exports.encodeTxn = exports.compileTeal = exports.compilePyTeal = exports.submitTransaction = exports.getMethodByName = exports.cache = exports.sleep = exports.algoIndexer = exports.algodClient = void 0;
+exports.getAppCallTransactionsFromRound = exports.getAppCallTransactionsBetweenRounds = exports.getAppCallTransactions = exports.getAppGenerateRandomNumberTransactions = exports.getAppPayWinnerTransactionsFromRound = exports.getAppPayWinnerTransactionsBetweenRounds = exports.getAppPayWinnerTransactions = exports.getAppEnterGameTransactionsFromRound = exports.getAppEnterGameTransactionsBetweenRounds = exports.getAppEnterGameTransactions = exports.getAppCreateGameTransactionsFromRound = exports.getAppCreateGameTransactionsBetweenRounds = exports.getAppCreateGameTransactions = exports.getAppPayTransactionsFromRound = exports.getAppPayTransactionsBetweenRounds = exports.getAppPayTransactions = exports.getUserTransactionstoAppBetweenRounds = exports.getUserTransactionstoApp = exports.checkContractOptedInToAsset = exports.checkUserOptedIn = exports.getTransactionReference = exports.sendAlgo = exports.encodeTxn = exports.compileTeal = exports.compilePyTeal = exports.submitTransaction = exports.getMethodByName = exports.cache = exports.sleep = exports.algoIndexer = exports.algodClient = void 0;
 const algosdk_1 = require("algosdk");
 const algosdk_2 = require("algosdk");
 const child_process_1 = require("child_process");
@@ -37,18 +37,23 @@ function sleep(seconds) {
 }
 exports.sleep = sleep;
 function cache(key, callbackInputs, expireIn, callbackFn, client) {
-    function run() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const cachedResponse = yield client.get(key);
-            if (cachedResponse) {
-                return JSON.parse(cachedResponse);
-            }
-            const result = yield callbackFn(...callbackInputs);
-            yield client.set(key, JSON.stringify(result), { EX: expireIn * 60 });
-            return result;
-        });
-    }
-    return run();
+    return __awaiter(this, void 0, void 0, function* () {
+        client = yield (0, config_1.initRedis)();
+        function run() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const cachedResponse = yield client.get(key);
+                if (cachedResponse) {
+                    yield client.disconnect();
+                    return JSON.parse(cachedResponse);
+                }
+                const result = yield callbackFn(...callbackInputs);
+                yield client.set(key, JSON.stringify(result), { EX: expireIn * 60 });
+                yield client.disconnect();
+                return result;
+            });
+        }
+        return run();
+    });
 }
 exports.cache = cache;
 // Utility function to return an ABIMethod by its name
@@ -152,6 +157,16 @@ function checkUserOptedIn(userAddr, appId) {
     });
 }
 exports.checkUserOptedIn = checkUserOptedIn;
+function checkContractOptedInToAsset(assetId, addr = config_1.appAddr) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var data = yield exports.algoIndexer.lookupAccountAssets(addr).assetId(assetId).do();
+        if (data["assets"].length == 0) {
+            return false;
+        }
+        return true;
+    });
+}
+exports.checkContractOptedInToAsset = checkContractOptedInToAsset;
 //add while loop to this to include next token
 //This only fetches app calls
 function getUserTransactionstoApp(userAddr, appId) {

@@ -37,7 +37,11 @@
                     "name": "lottery_account"
                 },
                 {
-                    "type": "pay",
+                    "type": "asset",
+                    "name": "game_asset"
+                },
+                {
+                    "type": "txn",
                     "name": "create_txn"
                 }
             ],
@@ -49,7 +53,7 @@
             "name": "get_game_params",
             "args": [],
             "returns": {
-                "type": "(uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64,address,uint64,uint64)"
+                "type": "(uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64,address,uint64,uint64,uint64,uint64)"
             }
         },
         {
@@ -60,7 +64,7 @@
                     "name": "guess_number"
                 },
                 {
-                    "type": "pay",
+                    "type": "txn",
                     "name": "ticket_txn"
                 }
             ],
@@ -117,10 +121,30 @@
                 {
                     "type": "account",
                     "name": "player"
+                },
+                {
+                    "type": "asset",
+                    "name": "game_asset"
                 }
             ],
             "returns": {
                 "type": "bool"
+            }
+        },
+        {
+            "name": "opt_contract_to_ASA",
+            "args": [
+                {
+                    "type": "account",
+                    "name": "lottery_account"
+                },
+                {
+                    "type": "asset",
+                    "name": "asset"
+                }
+            ],
+            "returns": {
+                "type": "void"
             }
         },
         {
@@ -137,6 +161,10 @@
                 {
                     "type": "account",
                     "name": "protocol_account"
+                },
+                {
+                    "type": "asset",
+                    "name": "game_asset"
                 }
             ],
             "returns": {

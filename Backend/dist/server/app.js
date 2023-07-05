@@ -51,9 +51,7 @@ const uri = config_1.MODE == "PRODUCTION"
     : "mongodb://localhost:27017/RandNum";
 const PORT = parseInt(process.env.PORT) || 3000;
 (function run() {
-    return __awaiter(this, void 0, void 0, function* () {
-        exports.client = yield (0, config_1.initRedis)();
-    });
+    return __awaiter(this, void 0, void 0, function* () { });
 })();
 mongoose_1.default
     .connect(uri, {})

@@ -42,7 +42,11 @@ class LottoGameArgsDecoder {
                     name: "lottery_account",
                 },
                 {
-                    type: "pay",
+                    type: "asset",
+                    name: "game_asset",
+                },
+                {
+                    type: "txn",
                     name: "create_txn",
                 },
             ],
@@ -60,7 +64,7 @@ class LottoGameArgsDecoder {
                     name: "guess_number",
                 },
                 {
-                    type: "pay",
+                    type: "txn",
                     name: "ticket_txn",
                 },
             ],
@@ -104,6 +108,10 @@ class LottoGameArgsDecoder {
                 {
                     type: "account",
                     name: "player",
+                },
+                {
+                    type: "asset",
+                    name: "game_asset",
                 },
             ],
             returns: {

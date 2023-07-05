@@ -2,6 +2,7 @@ import {
   decodeAddress,
   decodeUint64,
   encodeAddress,
+  makeAssetTransferTxnWithSuggestedParamsFromObject,
   waitForConfirmation,
 } from "algosdk";
 import { appAddr, appId, initRedis, user } from "../scripts/config";
@@ -18,6 +19,7 @@ import {
 } from "../scripts/lottoCall";
 import {
   algodClient,
+  checkContractOptedInToAsset,
   getAppCallTransactionsBetweenRounds,
   getAppCallTransactionsFromRound,
   getAppEnterGameTransactions,
@@ -59,6 +61,7 @@ interface Transaction {
   "application-transaction": {
     "application-args": string[];
     accounts: string[];
+    "foreign-assets": any[];
   };
   "payment-transaction": {
     receiver: string;
@@ -86,8 +89,10 @@ function parseLottoTxn(userTxns: Transaction[]) {
         const initParams = userTxn["application-transaction"][
           "application-args"
         ]
-          .slice(1, 8)
+          .slice(1, 10)
           .map((arg) => decodeUint64(Buffer.from(arg, "base64"), "mixed"));
+        const assetParams =
+          userTxn["application-transaction"]["foreign-assets"];
         value = {
           ticketingStart: initParams[0],
           ticketingDuration: initParams[1],
@@ -96,6 +101,7 @@ function parseLottoTxn(userTxns: Transaction[]) {
           win_multiplier: initParams[4],
           max_guess_number: initParams[5],
           max_players_allowed: initParams[6],
+          game_asset: assetParams[Number(initParams[8])],
         };
       } else if (action == "change_guess_number" || action == "enter_game") {
         value = decodeUint64(
@@ -317,6 +323,8 @@ export async function getCurrentGameParam() {
     maxGuessNumber: 0,
     maxPlayersAllowed: 0,
     gameMaster: "",
+    players_won: 0,
+    game_asset: 0,
     playersTicketChecked: 0,
     totalGamePlayed: 0,
   };
@@ -332,6 +340,8 @@ export async function getCurrentGameParam() {
     "maxPlayersAllowed",
     "gameMaster",
     "playersTicketChecked",
+    "players_won",
+    "game_asset",
     "totalGamePlayed",
   ];
   gameParamsKey.forEach(
@@ -357,8 +367,11 @@ export async function decodeTxReference(txId: string) {
   return data;
 }
 
-export async function checkPlayerWinStatus(playerAddr: string) {
-  const data = await checkUserWinLottery(playerAddr);
+export async function checkPlayerWinStatus(
+  playerAddr: string,
+  assetId?: number
+) {
+  const data = await checkUserWinLottery(playerAddr, assetId || 0);
   return data;
 }
 
@@ -370,7 +383,8 @@ export async function endCurrentAndCreateNewGame(
   winMultiplier = 2,
   maxPlayersAllowed = 20,
   maxGuessNumber = 100000,
-  gameMasterAddr = user.addr
+  gameMasterAddr = user.addr,
+  assetId?: number
 ) {
   const data = await getGameParams();
   if (!data?.status || !data.data) {
@@ -378,30 +392,7 @@ export async function endCurrentAndCreateNewGame(
   }
 
   //@ts-ignore
-  const gameParams: GameParams = {};
-  const gameParamsKey = [
-    "ticketingStart",
-    "ticketingDuration",
-    "withdrawalStart",
-    "ticketFee",
-    "luckyNumber",
-    "playersTicketBought",
-    "winMultiplier",
-    "maxGuessNumber",
-    "maxPlayersAllowed",
-    "gameMaster",
-    "playersTicketChecked",
-    "totalGamePlayed",
-  ];
-  gameParamsKey.forEach(
-    (gameParamKey, i) =>
-      //@ts-ignore
-      (gameParams[gameParamKey] = Number.isNaN(Number(data.data[i]))
-        ? //@ts-ignore
-          String(data.data[i])
-        : //@ts-ignore
-          Number(data.data[i]))
-  );
+  const gameParams: GameParams = await getCurrentGameParam();
 
   const lottoId = Number(gameParams.totalGamePlayed);
 
@@ -417,7 +408,8 @@ export async function endCurrentAndCreateNewGame(
       maxGuessNumber,
       maxPlayersAllowed,
       appAddr,
-      BigInt(withdrawalStart)
+      BigInt(withdrawalStart),
+      assetId
     );
     return { newLottoDetails: {}, newGame: success };
   }
@@ -431,10 +423,30 @@ export async function endCurrentAndCreateNewGame(
     return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
   }
 
+  if (gameParams.game_asset && gameParams.game_asset != 0) {
+    const params = await algodClient.getTransactionParams().do();
+    const protocolAddrOptedIn = await checkContractOptedInToAsset(
+      gameParams.game_asset,
+      user.addr
+    );
+    if (!protocolAddrOptedIn) {
+      const txn = makeAssetTransferTxnWithSuggestedParamsFromObject({
+        suggestedParams: params,
+        from: user.addr,
+        assetIndex: gameParams.game_asset,
+        to: user.addr,
+        amount: 0,
+      });
+      const signed = txn.signTxn(user.sk);
+      const { txId } = await algodClient.sendRawTransaction(signed).do();
+      console.log("protocol addr opted in to asset", txId);
+    }
+  }
   const resetStatus = await resetGameParams(
     appAddr,
     gameParams.gameMaster,
-    user.addr
+    user.addr,
+    gameParams.game_asset
   );
   if (!resetStatus.status || !resetStatus.confirmedRound) {
     return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
@@ -474,7 +486,8 @@ export async function endCurrentAndCreateNewGame(
     maxGuessNumber,
     maxPlayersAllowed,
     appAddr,
-    BigInt(withdrawalStart)
+    BigInt(withdrawalStart),
+    assetId
   );
 
   return { newLottoDetails: newLotto, newGame: success };
@@ -511,7 +524,11 @@ export async function checkAllPlayersWin() {
       const chunkSize = 25;
       for (let i = 0; i < uncheckedAddresses.length; i += chunkSize) {
         const chunk = uncheckedAddresses.slice(i, i + chunkSize);
-        await Promise.all(chunk.map((player) => checkUserWinLottery(player)));
+        await Promise.all(
+          chunk.map((player) =>
+            checkUserWinLottery(player, gameParams.game_asset)
+          )
+        );
         console.log(
           `Checked win status for ${i} out of ${uncheckedAddresses.length}`
         );

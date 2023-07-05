@@ -19,9 +19,7 @@ const uri =
     : "mongodb://localhost:27017/RandNum";
 const PORT: number = parseInt(process.env.PORT as string) || 3000;
 export let client: any;
-(async function run() {
-  client = await initRedis();
-})();
+(async function run() {})();
 mongoose
   .connect(uri, {})
   .then(() => {

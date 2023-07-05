@@ -30,8 +30,9 @@ function parseLottoTxn(userTxns) {
         }
         else if (action == "initiliaze_game_params") {
             const initParams = userTxn["application-transaction"]["application-args"]
-                .slice(1, 8)
+                .slice(1, 10)
                 .map((arg) => (0, algosdk_1.decodeUint64)(Buffer.from(arg, "base64"), "mixed"));
+            const assetParams = userTxn["application-transaction"]["foreign-assets"];
             value = {
                 ticketingStart: initParams[0],
                 ticketingDuration: initParams[1],
@@ -40,6 +41,7 @@ function parseLottoTxn(userTxns) {
                 win_multiplier: initParams[4],
                 max_guess_number: initParams[5],
                 max_players_allowed: initParams[6],
+                game_asset: assetParams[Number(initParams[8])],
             };
         }
         else if (action == "change_guess_number" || action == "enter_game") {
@@ -235,6 +237,8 @@ function getCurrentGameParam() {
             maxGuessNumber: 0,
             maxPlayersAllowed: 0,
             gameMaster: "",
+            players_won: 0,
+            game_asset: 0,
             playersTicketChecked: 0,
             totalGamePlayed: 0,
         };
@@ -250,6 +254,8 @@ function getCurrentGameParam() {
             "maxPlayersAllowed",
             "gameMaster",
             "playersTicketChecked",
+            "players_won",
+            "game_asset",
             "totalGamePlayed",
         ];
         gameParamsKey.forEach(
@@ -279,47 +285,26 @@ function decodeTxReference(txId) {
     });
 }
 exports.decodeTxReference = decodeTxReference;
-function checkPlayerWinStatus(playerAddr) {
+function checkPlayerWinStatus(playerAddr, assetId) {
     return __awaiter(this, void 0, void 0, function* () {
-        const data = yield (0, lottoCall_1.checkUserWinLottery)(playerAddr);
+        const data = yield (0, lottoCall_1.checkUserWinLottery)(playerAddr, assetId || 0);
         return data;
     });
 }
 exports.checkPlayerWinStatus = checkPlayerWinStatus;
-function endCurrentAndCreateNewGame(ticketingStart = Math.round(Date.now() / 1000 + 200), ticketingDuration = 3600, withdrawalStart = ticketingStart + 4600, ticketFee = 2e6, winMultiplier = 2, maxPlayersAllowed = 20, maxGuessNumber = 100000, gameMasterAddr = config_1.user.addr) {
+function endCurrentAndCreateNewGame(ticketingStart = Math.round(Date.now() / 1000 + 200), ticketingDuration = 3600, withdrawalStart = ticketingStart + 4600, ticketFee = 2e6, winMultiplier = 2, maxPlayersAllowed = 20, maxGuessNumber = 100000, gameMasterAddr = config_1.user.addr, assetId) {
     return __awaiter(this, void 0, void 0, function* () {
         const data = yield (0, lottoCall_1.getGameParams)();
         if (!(data === null || data === void 0 ? void 0 : data.status) || !data.data) {
             return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
         }
         //@ts-ignore
-        const gameParams = {};
-        const gameParamsKey = [
-            "ticketingStart",
-            "ticketingDuration",
-            "withdrawalStart",
-            "ticketFee",
-            "luckyNumber",
-            "playersTicketBought",
-            "winMultiplier",
-            "maxGuessNumber",
-            "maxPlayersAllowed",
-            "gameMaster",
-            "playersTicketChecked",
-            "totalGamePlayed",
-        ];
-        gameParamsKey.forEach((gameParamKey, i) => 
-        //@ts-ignore
-        (gameParams[gameParamKey] = Number.isNaN(Number(data.data[i]))
-            ? //@ts-ignore
-                String(data.data[i])
-            : //@ts-ignore
-                Number(data.data[i])));
+        const gameParams = yield getCurrentGameParam();
         const lottoId = Number(gameParams.totalGamePlayed);
         // Only reset game when there has been a game played(just initialize game)
         if (gameParams.ticketingStart == 0) {
             console.log("No new game was played on contract");
-            const success = yield (0, lottoCall_1.initializeGameParams)(gameMasterAddr, BigInt(ticketingStart), ticketingDuration, ticketFee, winMultiplier, maxGuessNumber, maxPlayersAllowed, config_1.appAddr, BigInt(withdrawalStart));
+            const success = yield (0, lottoCall_1.initializeGameParams)(gameMasterAddr, BigInt(ticketingStart), ticketingDuration, ticketFee, winMultiplier, maxGuessNumber, maxPlayersAllowed, config_1.appAddr, BigInt(withdrawalStart), assetId);
             return { newLottoDetails: {}, newGame: success };
         }
         //if game is not yet over do not restart
@@ -328,7 +313,23 @@ function endCurrentAndCreateNewGame(ticketingStart = Math.round(Date.now() / 100
             console.log("Current Game not finished");
             return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
         }
-        const resetStatus = yield (0, lottoCall_1.resetGameParams)(config_1.appAddr, gameParams.gameMaster, config_1.user.addr);
+        if (gameParams.game_asset && gameParams.game_asset != 0) {
+            const params = yield utils_1.algodClient.getTransactionParams().do();
+            const protocolAddrOptedIn = yield (0, utils_1.checkContractOptedInToAsset)(gameParams.game_asset, config_1.user.addr);
+            if (!protocolAddrOptedIn) {
+                const txn = (0, algosdk_1.makeAssetTransferTxnWithSuggestedParamsFromObject)({
+                    suggestedParams: params,
+                    from: config_1.user.addr,
+                    assetIndex: gameParams.game_asset,
+                    to: config_1.user.addr,
+                    amount: 0,
+                });
+                const signed = txn.signTxn(config_1.user.sk);
+                const { txId } = yield utils_1.algodClient.sendRawTransaction(signed).do();
+                console.log("protocol addr opted in to asset", txId);
+            }
+        }
+        const resetStatus = yield (0, lottoCall_1.resetGameParams)(config_1.appAddr, gameParams.gameMaster, config_1.user.addr, gameParams.game_asset);
         if (!resetStatus.status || !resetStatus.confirmedRound) {
             return { newLottoDetails: {}, newGame: { status: false, txns: [] } };
         }
@@ -358,7 +359,7 @@ function endCurrentAndCreateNewGame(ticketingStart = Math.round(Date.now() / 100
                 roundStart: resetStatus.confirmedRound,
             });
         }
-        const success = yield (0, lottoCall_1.initializeGameParams)(gameMasterAddr, BigInt(ticketingStart), ticketingDuration, ticketFee, winMultiplier, maxGuessNumber, maxPlayersAllowed, config_1.appAddr, BigInt(withdrawalStart));
+        const success = yield (0, lottoCall_1.initializeGameParams)(gameMasterAddr, BigInt(ticketingStart), ticketingDuration, ticketFee, winMultiplier, maxGuessNumber, maxPlayersAllowed, config_1.appAddr, BigInt(withdrawalStart), assetId);
         return { newLottoDetails: newLotto, newGame: success };
     });
 }
@@ -384,7 +385,7 @@ function checkAllPlayersWin() {
                 const chunkSize = 25;
                 for (let i = 0; i < uncheckedAddresses.length; i += chunkSize) {
                     const chunk = uncheckedAddresses.slice(i, i + chunkSize);
-                    yield Promise.all(chunk.map((player) => (0, lottoCall_1.checkUserWinLottery)(player)));
+                    yield Promise.all(chunk.map((player) => (0, lottoCall_1.checkUserWinLottery)(player, gameParams.game_asset)));
                     console.log(`Checked win status for ${i} out of ${uncheckedAddresses.length}`);
                 }
                 return { status: true };

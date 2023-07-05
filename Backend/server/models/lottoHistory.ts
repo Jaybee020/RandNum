@@ -12,6 +12,8 @@ export interface GameParams {
   gameMaster: string;
   playersTicketBought: number;
   playersTicketChecked: number;
+  players_won: number;
+  game_asset: number;
   totalGamePlayed: number;
 }
 

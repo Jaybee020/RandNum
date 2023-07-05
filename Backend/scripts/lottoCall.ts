@@ -15,9 +15,15 @@ import {
   ALGORAND_MIN_TX_FEE,
   decodeAddress,
   decodeUnsignedTransaction,
+  makeAssetTransferTxnWithSuggestedParamsFromObject,
 } from "algosdk";
 import { appAddr, appId, randomnessBeaconContract, user } from "./config";
-import { algoIndexer, checkUserOptedIn, getMethodByName } from "./utils";
+import {
+  algoIndexer,
+  checkContractOptedInToAsset,
+  checkUserOptedIn,
+  getMethodByName,
+} from "./utils";
 // import { appId, user } from "./config";
 import { algodClient, submitTransaction } from "./utils";
 
@@ -44,21 +50,36 @@ async function OptIn(user: Account, appId: number) {
   console.log("Opted-in to app-id:", transactionResponse["txn"]["txn"]["apid"]);
 }
 
+//check if current game uses algo or asset
 export async function enterCurrentGame(
   playerAddr: string,
   guessNumber: number,
-  ticketFee: number | bigint
+  ticketFee: number | bigint,
+  assetId?: number
 ) {
   // string parameter
   const params = await algodClient.getTransactionParams().do();
   const enc = new TextEncoder();
-  const ticketTXn = makePaymentTxnWithSuggestedParamsFromObject({
-    suggestedParams: params,
-    from: playerAddr,
-    to: appAddr,
-    amount: ticketFee,
-    note: enc.encode("enter_game"),
-  });
+  var ticketTXn;
+  if (assetId && assetId != 0) {
+    ticketTXn = makeAssetTransferTxnWithSuggestedParamsFromObject({
+      suggestedParams: params,
+      from: playerAddr,
+      to: appAddr,
+      amount: ticketFee,
+      note: enc.encode("enter_game"),
+      assetIndex: assetId,
+    });
+  } else {
+    ticketTXn = makePaymentTxnWithSuggestedParamsFromObject({
+      suggestedParams: params,
+      from: playerAddr,
+      to: appAddr,
+      amount: ticketFee,
+      note: enc.encode("enter_game"),
+    });
+  }
+
   const abi = new ABIMethod({
     name: "enter_game",
     args: [
@@ -67,7 +88,7 @@ export async function enterCurrentGame(
         name: "guess_number",
       },
       {
-        type: "pay",
+        type: "txn",
         name: "ticket_txn",
       },
     ],
@@ -148,6 +169,22 @@ export async function call(
   return result;
 }
 
+export async function optContractToASA(asset: number) {
+  try {
+    const data = await call(
+      user,
+      appId,
+      "opt_contract_to_ASA",
+      [appAddr, asset],
+      2 * ALGORAND_MIN_TX_FEE
+    );
+    return { status: true };
+  } catch (error) {
+    console.log(error);
+    return { status: false };
+  }
+}
+
 // console.log(SHA256("Hello").toString(enc.Base64));
 // call(user, appId, "generate_lucky_number", [110096026]).catch(console.error);
 // call(user, appId, "get_latest_multiple", []).catch(console.error);
@@ -182,13 +219,14 @@ export async function getGameParams() {
   }
 }
 
-export async function checkUserWinLottery(userAddr: string) {
+//check if it uses algo or asset
+export async function checkUserWinLottery(userAddr: string, assetId?: number) {
   try {
     const data = await call(
       user,
       appId,
       "check_user_win_lottery",
-      [userAddr],
+      [userAddr, assetId || 0],
       2 * ALGORAND_MIN_TX_FEE
     );
 
@@ -233,6 +271,15 @@ export async function generateRandomNumber() {
     return { status: false };
   }
 }
+export async function putLuckyNumber() {
+  try {
+    await call(user, appId, "put_lucky_number", []);
+    return { status: true };
+  } catch (error) {
+    console.log(error);
+    return { status: false };
+  }
+}
 
 export async function getGeneratedLuckyNumber() {
   try {
@@ -247,14 +294,27 @@ export async function getGeneratedLuckyNumber() {
   }
 }
 
+//check if it uses ASA or native algo
 export async function getMinAmountToStartGame(
   ticketFee: number,
   win_multiplier: number,
-  max_players_allowed: number | bigint
+  max_players_allowed: number | bigint,
+  assetId?: number
 ) {
-  const appAccountInfo = await algodClient.accountInformation(appAddr).do();
-  const appSpendableBalance =
-    appAccountInfo.amount - appAccountInfo["min-balance"];
+  var appAccountInfo, appSpendableBalance;
+  if (assetId && assetId != 0) {
+    appAccountInfo = await algoIndexer
+      .lookupAccountAssets(appAddr)
+      .assetId(assetId)
+      .do();
+    appSpendableBalance =
+      appAccountInfo["assets"].length == 0
+        ? 0
+        : appAccountInfo["assets"][0].amount;
+  } else {
+    appAccountInfo = await algodClient.accountInformation(appAddr).do();
+    appSpendableBalance = appAccountInfo.amount - appAccountInfo["min-balance"];
+  }
 
   return (
     (BigInt(win_multiplier) - BigInt(1)) *
@@ -273,23 +333,46 @@ export async function initializeGameParams(
   max_guess_number: number | bigint,
   max_players_allowed: number | bigint,
   lotteryContractAddr: string,
-  withdrawalStart: number | bigint
+  withdrawalStart: number | bigint,
+  assetId?: number
 ) {
   try {
     const params = await algodClient.getTransactionParams().do();
     const minAmountToTransfer = await getMinAmountToStartGame(
       ticketFee,
       win_multiplier,
-      max_players_allowed
+      max_players_allowed,
+      assetId
     );
     const enc = new TextEncoder();
-    const newGameTxn = makePaymentTxnWithSuggestedParamsFromObject({
-      suggestedParams: params,
-      from: gameMasterAddr,
-      to: appAddr,
-      amount: minAmountToTransfer <= BigInt(1e6) ? 1e6 : minAmountToTransfer,
-      note: enc.encode("init_game"), //for decoding when trying to do profile(exclude init game txns)
-    });
+    var newGameTxn;
+    if (assetId && assetId != 0) {
+      const isOptedIntoAsset = await checkContractOptedInToAsset(assetId);
+      if (!isOptedIntoAsset) {
+        const { status } = await optContractToASA(assetId);
+        if (!status) {
+          console.log("Couldn't opt in to contract");
+          return { status: false };
+        }
+      }
+      newGameTxn = makeAssetTransferTxnWithSuggestedParamsFromObject({
+        suggestedParams: params,
+        from: gameMasterAddr,
+        assetIndex: assetId,
+        to: appAddr,
+        amount: minAmountToTransfer < BigInt(1) ? 1 : minAmountToTransfer,
+        note: enc.encode("init_game"), //for decoding when trying to do profile(exclude init game txns)
+      });
+    } else {
+      newGameTxn = makePaymentTxnWithSuggestedParamsFromObject({
+        suggestedParams: params,
+        from: gameMasterAddr,
+        to: appAddr,
+        amount: minAmountToTransfer <= BigInt(1e6) ? 1e6 : minAmountToTransfer,
+        note: enc.encode("init_game"), //for decoding when trying to do profile(exclude init game txns)
+      });
+    }
+
     const abi = new ABIMethod({
       name: "initiliaze_game_params",
       args: [
@@ -326,7 +409,11 @@ export async function initializeGameParams(
           name: "lottery_account",
         },
         {
-          type: "pay",
+          type: "asset",
+          name: "game_asset",
+        },
+        {
+          type: "txn",
           name: "create_txn",
         },
       ],
@@ -348,8 +435,11 @@ export async function initializeGameParams(
         encodeUint64(max_guess_number),
         encodeUint64(max_players_allowed),
         encodeUint64(1).subarray(7, 8),
+        encodeUint64(0).subarray(7, 8),
       ],
-      [lotteryContractAddr]
+      [lotteryContractAddr],
+      undefined,
+      assetId == undefined || assetId == 0 ? undefined : [assetId]
     );
     return {
       status: true,
@@ -364,14 +454,15 @@ export async function initializeGameParams(
 export async function resetGameParams(
   lotteryContractAddr: string,
   gameMasterAddr: string,
-  protocolAddr: string
+  protocolAddr: string,
+  assetId?: number
 ) {
   try {
     const data = await call(
       user,
       appId,
       "reset_game_params",
-      [lotteryContractAddr, gameMasterAddr, protocolAddr],
+      [lotteryContractAddr, gameMasterAddr, protocolAddr, assetId || 0],
       3 * ALGORAND_MIN_TX_FEE
     );
     return {

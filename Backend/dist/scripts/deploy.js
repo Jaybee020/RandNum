@@ -22,7 +22,7 @@ function main() {
         // declare application state storage (immutable)
         let localInts = 2;
         let localBytes = 0;
-        let globalInts = 13;
+        let globalInts = 14;
         let globalBytes = 1;
         // get transaction params
         const params = yield utils_1.algodClient.getTransactionParams().do();

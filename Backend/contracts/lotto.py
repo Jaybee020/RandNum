@@ -16,6 +16,7 @@ current_game_master_deposit = App.globalGet(Bytes("Game_Master_Deposit"))
 current_players_ticket_bought = App.globalGet(Bytes("Players_Ticket_Bought"))
 current_players_ticket_checked = App.globalGet(Bytes("Players_Ticket_Checked"))
 current_players_won = App.globalGet(Bytes("Players_Won"))
+current_game_asset = App.globalGet(Bytes("Game_Asset"))
 current_total_game_played = App.globalGet(Bytes("Total_Game_Count"))
 
 
@@ -31,6 +32,8 @@ class Game_Params(abi.NamedTuple):
     max_players_allowed: abi.Field[abi.Uint64]
     game_master: abi.Field[abi.Address]
     players_ticket_checked: abi.Field[abi.Uint64]
+    players_won: abi.Field[abi.Uint64]
+    game_asset: abi.Field[abi.Uint64]
     total_game_played: abi.Field[abi.Uint64]
 
 
@@ -47,15 +50,101 @@ handle_Creation = Seq(
     App.globalPut(Bytes("Players_Ticket_Bought"), Int(0)),
     App.globalPut(Bytes("Players_Ticket_Checked"), Int(0)),
     App.globalPut(Bytes("Players_Won"), Int(0)),
+    App.globalPut(Bytes("Game_Asset"), Int(0)),
     App.globalPut(Bytes("Game_Master"), Global.zero_address()),
     App.globalPut(Bytes("Game_Master_Deposit"), Int(0)),
     Approve()
 )
 
 
+@Subroutine(TealType.none)
+def handleAlgoDeposit(create_txn: abi.Transaction, lottery_account: abi.Account, max_players_allowed: abi.Uint64, ticket_fee: abi.Uint64, win_multiplier: abi.Uint64):
+    return Seq(
+        Assert(
+            And(
+                create_txn.get().receiver() == Global.current_application_address(),
+                create_txn.get().sender() == Txn.sender(),
+                create_txn.get().type_enum() == TxnType.Payment,
+                # need to deposit at least 1 algo to create game
+                create_txn.get().amount() >= Int(1000000),
+                # balance after this transaction is sufficient to pay out a scenario where all participants win the lottery
+                Balance(lottery_account.address()) -
+                MinBalance(lottery_account.address())
+                >= max_players_allowed.get() *
+                (win_multiplier.get()-Int(1))*ticket_fee.get(),
+                # Txn Note must be fixed
+                create_txn.get().note() == Bytes("init_game"),
+                # ticketing_fee is greater than 1 algo
+                ticket_fee.get() >= Int(1000000),
+            )
+        )
+    )
+
+
+# opt contract into asa before using asa as game_asset
+@Subroutine(TealType.none)
+def handleASADeposit(create_txn: abi.Transaction, lottery_account: abi.Account, max_players_allowed: abi.Uint64, ticket_fee: abi.Uint64, win_multiplier: abi.Uint64, game_asset: abi.Asset):
+    lottery_account_asset_balance = AssetHolding.balance(
+        lottery_account.address(), game_asset.asset_id())
+    return Seq(
+        lottery_account_asset_balance,
+        Assert(
+            And(
+                lottery_account_asset_balance.hasValue(),
+                create_txn.get().type_enum() == TxnType.AssetTransfer,
+                create_txn.get().xfer_asset() == game_asset.asset_id(),
+                create_txn.get().sender() == Txn.sender(),
+                create_txn.get().asset_amount() >= Int(1),
+                ticket_fee.get() >= Int(1),
+                create_txn.get().asset_receiver() == Global.current_application_address(),
+                lottery_account_asset_balance.value() >= max_players_allowed.get() *
+                (win_multiplier.get()-Int(1))*ticket_fee.get(),
+                create_txn.get().note() == Bytes("init_game"),
+            )
+        )
+    )
+
+
+@Subroutine(TealType.none)
+def initiateASATransfer(receiver: Expr, assetId: Expr, amount: Expr, note: Expr):
+    return Seq(
+        InnerTxnBuilder.Begin(),
+        InnerTxnBuilder.SetFields(
+            {
+                TxnField.type_enum: TxnType.AssetTransfer,
+                TxnField.fee: Int(0),
+                TxnField.asset_amount: amount,
+                TxnField.asset_receiver: receiver,
+                TxnField.note: note,
+                TxnField.xfer_asset: assetId,
+            }
+        ),
+        InnerTxnBuilder.Submit(),
+    )
+
+
+@Subroutine(TealType.none)
+def initiateAlgoTransfer(receiver: Expr, amount: Expr, note: Expr):
+    return Seq(
+        InnerTxnBuilder.Begin(),
+        InnerTxnBuilder.SetFields(
+            {
+                TxnField.type_enum: TxnType.Payment,
+                TxnField.receiver: receiver,
+                TxnField.amount: amount,
+                TxnField.note: note,
+                TxnField.fee: Int(0),
+            }
+        ),
+        InnerTxnBuilder.Submit(),
+    )
+
+
 # To call this function,the new game master must send a transaction such that the
+
+
 @ABIReturnSubroutine
-def initiliaze_game_params(ticketing_start: abi.Uint64, ticketing_duration: abi.Uint64, ticket_fee: abi.Uint64, withdrawal_start: abi.Uint64, win_multiplier: abi.Uint64, max_guess_number: abi.Uint64, max_players_allowed: abi.Uint64, lottery_account: abi.Account, create_txn: abi.PaymentTransaction):
+def initiliaze_game_params(ticketing_start: abi.Uint64, ticketing_duration: abi.Uint64, ticket_fee: abi.Uint64, withdrawal_start: abi.Uint64, win_multiplier: abi.Uint64, max_guess_number: abi.Uint64, max_players_allowed: abi.Uint64, lottery_account: abi.Account, game_asset: abi.Asset, create_txn: abi.Transaction):
     return Seq(
         Assert(
             And(
@@ -71,25 +160,17 @@ def initiliaze_game_params(ticketing_start: abi.Uint64, ticketing_duration: abi.
                 current_game_master == Global.zero_address(),
                 current_game_master_deposit == Int(0),
                 current_players_won == Int(0),
+                current_game_asset == Int(0),
                 lottery_account.address() == Global.current_application_address(),
-                create_txn.get().receiver() == Global.current_application_address(),
-                create_txn.get().sender() == Txn.sender(),
-                create_txn.get().type_enum() == TxnType.Payment,
-                # need to deposit at least 1 algo to create game
-                create_txn.get().amount() >= Int(1000000),
-                # balance after this transaction is sufficient to pay out a scenario where all participants win the lottery
-                create_txn.get().amount()+Balance(lottery_account.address()) -
-                MinBalance(lottery_account.address())
-                > max_players_allowed.get() *
-                (win_multiplier.get()-Int(1))*ticket_fee.get(),
-                # Txn Note must be fixed
-                create_txn.get().note() == Bytes("init_game"),
                 # ticketing phase must start at least 3 minutes into the future
                 ticketing_start.get() > Global.latest_timestamp() + Int(180),
+                ticketing_start.get() < Global.latest_timestamp() + \
+                Int(3600),  # ticketing must start in at least 1 hr
                 # ticketing phase must be for at least 15 minutes
                 ticketing_duration.get() > Int(900),
-                # ticketing_fee is greater than 1 algo
-                ticket_fee.get() >= Int(1000000),
+                # ticketing phase can only last for at most 12 hours
+                ticketing_duration.get() < Int(43200),
+
                 # max guess number should be at least 100
                 max_guess_number.get() > Int(99),
                 max_players_allowed.get() > Int(0),
@@ -97,8 +178,25 @@ def initiliaze_game_params(ticketing_start: abi.Uint64, ticketing_duration: abi.
                 win_multiplier.get() > Int(1),
                 # withdrawal starts at least 15 mins after ticketing closed
                 withdrawal_start.get() > ticketing_start.get() + \
-                ticketing_duration.get() + Int(900)
-            )
+                ticketing_duration.get() + Int(900),
+                withdrawal_start.get() < ticketing_start.get() + \
+                ticketing_duration.get() + Int(3600)
+            ),
+            Or(create_txn.get().type_enum() == TxnType.Payment,
+               create_txn.get().type_enum() == TxnType.AssetTransfer)
+        ),
+        If(create_txn.get().type_enum() == TxnType.Payment).Then(
+            handleAlgoDeposit(create_txn, lottery_account,
+                              max_players_allowed, ticket_fee, win_multiplier),
+            App.globalPut(Bytes("Game_Master_Deposit"),
+                          create_txn.get().amount()),
+
+        ).Else(
+            handleASADeposit(create_txn, lottery_account, max_players_allowed,
+                             ticket_fee, win_multiplier, game_asset),
+            App.globalPut(Bytes("Game_Asset"), game_asset.asset_id()),
+            App.globalPut(Bytes("Game_Master_Deposit"),
+                          create_txn.get().asset_amount()),
 
         ),
         App.globalPut(Bytes("Ticketing_Start"), ticketing_start.get()),
@@ -109,7 +207,21 @@ def initiliaze_game_params(ticketing_start: abi.Uint64, ticketing_duration: abi.
         App.globalPut(Bytes("Max_Players_Allowed"), max_players_allowed.get()),
         App.globalPut(Bytes("Max_Guess_Number"), max_guess_number.get()),
         App.globalPut(Bytes("Game_Master"), Txn.sender()),
-        App.globalPut(Bytes("Game_Master_Deposit"), create_txn.get().amount()),
+    )
+
+
+@ABIReturnSubroutine
+def opt_contract_to_ASA(lottery_account: abi.Account, asset: abi.Asset):
+    lottery_account_asset_balance = AssetHolding.balance(
+        lottery_account.address(), asset.asset_id())
+    return Seq(
+        Assert(lottery_account.address() ==
+               Global.current_application_address()),
+        lottery_account_asset_balance,
+        If(Not(lottery_account_asset_balance.hasValue())).Then(
+            initiateASATransfer(
+                Global.current_application_address(), asset.asset_id(), Int(0), Bytes("opt_in"))
+        )
     )
 
 
@@ -126,6 +238,8 @@ def get_game_params(*, output: Game_Params):
     win_multiplier = abi.make(abi.Uint64)
     max_guess_number = abi.make(abi.Uint64)
     max_players_allowed = abi.make(abi.Uint64)
+    players_won = abi.make(abi.Uint64)
+    game_asset = abi.make(abi.Uint64)
     total_game_played = abi.make(abi.Uint64)
 
     return Seq(
@@ -141,29 +255,45 @@ def get_game_params(*, output: Game_Params):
         win_multiplier.set(current_win_multiplier),
         max_guess_number.set(current_max_guess_number),
         max_players_allowed.set(current_max_players_allowed),
+        players_won.set(current_players_won),
+        game_asset.set(current_game_asset),
         output.set(ticketing_start, ticketing_duration,
-                   withdrawal_start, ticket_fee, lucky_number, players_ticket_bought, win_multiplier, max_guess_number, max_players_allowed, game_master, players_ticket_checked, total_game_played)
+                   withdrawal_start, ticket_fee, lucky_number, players_ticket_bought, win_multiplier, max_guess_number, max_players_allowed, game_master, players_ticket_checked, players_won, game_asset, total_game_played)
     )
 
 
 @ABIReturnSubroutine
-def enter_game(guess_number: abi.Uint64, ticket_txn: abi.PaymentTransaction):
+def enter_game(guess_number: abi.Uint64, ticket_txn: abi.Transaction):
 
     return Seq(
         Assert(
-
             # Assert that the receiver of the transaction is the smart contract and amount paid is ticket fee and contract is in ticketing phase
             And(
                 current_players_ticket_bought < current_max_players_allowed,
                 guess_number.get() > Int(0),
                 guess_number.get() <= current_max_guess_number,
+                ticket_txn.get().note() == Bytes("enter_game"),
+                Global.latest_timestamp() <= current_ticketing_start+current_ticketing_duration,
+            ),
+            Or(ticket_txn.get().type_enum() == TxnType.Payment,
+               ticket_txn.get().type_enum() == TxnType.AssetTransfer)
+        ),
+        If(current_game_asset == Int(0)).Then(
+            Assert(
                 ticket_txn.get().receiver() == Global.current_application_address(),
                 ticket_txn.get().sender() == Txn.sender(),
                 ticket_txn.get().type_enum() == TxnType.Payment,
-                ticket_txn.get().note() == Bytes("enter_game"),
                 ticket_txn.get().amount() == current_ticket_fee,
                 ticket_txn.get().close_remainder_to() == Global.zero_address(),
-                Global.latest_timestamp() <= current_ticketing_start+current_ticketing_duration,
+            )
+
+        ).Else(
+            Assert(
+                ticket_txn.get().asset_receiver() == Global.current_application_address(),
+                ticket_txn.get().sender() == Txn.sender(),
+                ticket_txn.get().type_enum() == TxnType.AssetTransfer,
+                ticket_txn.get().asset_amount() == current_ticket_fee,
+                ticket_txn.get().xfer_asset() == current_game_asset,
             )
         ),
 
@@ -250,7 +380,7 @@ def generate_lucky_number(application_Id: abi.Application):
 
 
 @ABIReturnSubroutine
-def check_user_win_lottery(player: abi.Account, *, output: abi.Bool):
+def check_user_win_lottery(player: abi.Account, game_asset: abi.Asset, *, output: abi.Bool):
     user_has_checked = App.localGet(player.address(), Bytes("checked"))
     user_guess_correctly = App.localGet(
         player.address(), Bytes("guess_number")) == current_lucky_number
@@ -266,14 +396,14 @@ def check_user_win_lottery(player: abi.Account, *, output: abi.Bool):
             output.set(user_guess_correctly)
         ).Else(
             If(user_guess_correctly).Then(
-                InnerTxnBuilder.Begin(),
-                InnerTxnBuilder.SetFields({
-                    TxnField.type_enum: TxnType.Payment,
-                    TxnField.receiver: player.address(),
-                    TxnField.note: Bytes("pay_winner"),
-                    TxnField.fee: Int(0),
-                    TxnField.amount: current_ticket_fee*current_win_multiplier}),
-                InnerTxnBuilder.Submit(),
+                If(current_game_asset == Int(0)).Then(
+                    initiateAlgoTransfer(
+                        player.address(), current_ticket_fee*current_win_multiplier, Bytes("pay_winner"))
+                ).Else(
+                    Assert(game_asset.asset_id() == current_game_asset),
+                    initiateASATransfer(
+                        player.address(), game_asset.asset_id(), current_ticket_fee*current_win_multiplier, Bytes("pay_winner"))
+                ),
                 App.globalPut(Bytes("Players_Won"), current_players_won+Int(1))
             ),
             App.localPut(player.address(), Bytes("checked"), Int(1)),
@@ -299,9 +429,14 @@ def get_total_game_played(*, output: abi.Uint64):
 
 
 @ ABIReturnSubroutine
-def reset_game_params(lottery_account: abi.Account, game_master_account: abi.Account, protocol_account: abi.Account):
+def reset_game_params(lottery_account: abi.Account, game_master_account: abi.Account, protocol_account: abi.Account, game_asset: abi.Asset):
     lottery_balance = Balance(lottery_account.address()) - \
         MinBalance(lottery_account.address())
+    lottery_account_asset_balance = AssetHolding.balance(
+        lottery_account.address(), game_asset.asset_id())
+
+    protocol_account_asset_balance = AssetHolding.balance(
+        protocol_account.address(), game_asset.asset_id())
     protocol_fee_var = ScratchVar(TealType.uint64)
     game_master_fee_var = ScratchVar(TealType.uint64)
     game_master_reward_var = ScratchVar(TealType.uint64)
@@ -317,49 +452,84 @@ def reset_game_params(lottery_account: abi.Account, game_master_account: abi.Acc
                 current_players_ticket_bought == current_players_ticket_checked
             )
         ),
-        # handle paying protocol fee to creator and game Master fee
-        If(lottery_balance >= Int(1000000)).Then(
+        # calculate how much players game_master deposit allows
+        game_master_reward_var.store(
+            current_game_master_deposit/(current_ticket_fee*(current_win_multiplier-Int(1))*current_max_players_allowed)),
+        # If it is more than players participating
+        If(game_master_reward_var.load() > current_players_ticket_bought).Then(
+            game_master_reward_var.store(current_players_ticket_bought)
+        ),
+
+        If((current_players_won*current_win_multiplier*current_ticket_fee) >= current_game_master_deposit).Then(
+            refundable_game_master_deposit.store(Int(0))
+        ).Else(
+            refundable_game_master_deposit.store(
+                current_game_master_deposit-(current_players_won*(current_win_multiplier-Int(1))*current_ticket_fee))
+        ),
+        # game master usually gets 50% on every ticket bought out of his rewardable players
+        game_master_fee_var.store(
+            refundable_game_master_deposit.load()+((game_master_reward_var.load()-current_players_won)*current_ticket_fee/Int(2))),
+        # Handle the case where the contract can't pay
+
+        If(current_game_asset == Int(0)).Then(
             protocol_fee_var.store(lottery_balance/Int(20)),
-            # calculate how much players game_master deposit allows
-            game_master_reward_var.store(
-                current_game_master_deposit/(current_ticket_fee*(current_win_multiplier-Int(1))*current_max_players_allowed)),
-            # If it is more than players participating
-            If(game_master_reward_var.load() > current_players_ticket_bought).Then(
-                game_master_reward_var.store(current_players_ticket_bought)
+            If(protocol_fee_var.load() > Int(500000000)).Then(
+                # cap protocol fee at 500 algos
+                protocol_fee_var.store(Int(500000000)),
             ),
-            If(protocol_fee_var.load() > Int(250000000)).Then(
-                protocol_fee_var.store(Int(250000000)),
-            ),
-            # every game master receives a minimum of 1000 micro algos
-            If((current_players_won*current_win_multiplier*current_ticket_fee) >= current_game_master_deposit).Then(
-                refundable_game_master_deposit.store(Int(1000))
-            ).Else(
-                refundable_game_master_deposit.store(
-                    current_game_master_deposit-(current_players_won*current_win_multiplier*current_ticket_fee))
-            ),
-            # game master usually gets 25% on every ticket bought out of his rewardable players
-            game_master_fee_var.store(
-                refundable_game_master_deposit.load()+((game_master_reward_var.load()-current_players_won)*current_ticket_fee/Int(4))),
-            # Handle the case where the contract can't pay
             If(game_master_fee_var.load() > (lottery_balance-protocol_fee_var.load())).Then(
                 game_master_fee_var.store(
                     lottery_balance-protocol_fee_var.load())
             ),
-            InnerTxnBuilder.Begin(),
-            InnerTxnBuilder.SetFields({
-                TxnField.type_enum: TxnType.Payment,
-                TxnField.receiver: protocol_account.address(),
-                TxnField.note: Bytes("pay_protocol"),
-                TxnField.fee: Int(0),
-                TxnField.amount: protocol_fee_var.load()}),
-            InnerTxnBuilder.Next(),
-            InnerTxnBuilder.SetFields({
-                TxnField.type_enum: TxnType.Payment,
-                TxnField.receiver: game_master_account.address(),
-                TxnField.note: Bytes("pay_game_master"),
-                TxnField.fee: Int(0),
-                TxnField.amount: game_master_fee_var.load()}),
-            InnerTxnBuilder.Submit()
+            If(game_master_fee_var.load() > Int(0)).Then(
+                InnerTxnBuilder.Begin(),
+                InnerTxnBuilder.SetFields({
+                    TxnField.type_enum: TxnType.Payment,
+                    TxnField.receiver: protocol_account.address(),
+                    TxnField.note: Bytes("pay_protocol"),
+                    TxnField.fee: Int(0),
+                    TxnField.amount: protocol_fee_var.load()}),
+                InnerTxnBuilder.Next(),
+                InnerTxnBuilder.SetFields({
+                    TxnField.type_enum: TxnType.Payment,
+                    TxnField.receiver: game_master_account.address(),
+                    TxnField.note: Bytes("pay_game_master"),
+                    TxnField.fee: Int(0),
+                    TxnField.amount: game_master_fee_var.load()}),
+                InnerTxnBuilder.Submit()
+            )
+        ).Else(
+            lottery_account_asset_balance,
+            protocol_account_asset_balance,
+            Assert(current_game_asset == game_asset.asset_id(),
+                   lottery_account_asset_balance.hasValue()),
+            protocol_fee_var.store(
+                lottery_account_asset_balance.value()/Int(20)),
+            If(game_master_fee_var.load() > (lottery_account_asset_balance.value()-protocol_fee_var.load())).Then(
+                game_master_fee_var.store(
+                    lottery_account_asset_balance.value()-protocol_fee_var.load())
+            ),
+            If(game_master_fee_var.load() > Int(0)).Then(
+                InnerTxnBuilder.Begin(),
+                InnerTxnBuilder.SetFields({
+                    TxnField.type_enum: TxnType.AssetTransfer,
+                    TxnField.asset_receiver: game_master_account.address(),
+                    TxnField.note: Bytes("pay_game_master"),
+                    TxnField.xfer_asset: current_game_asset,
+                    TxnField.fee: Int(0),
+                    TxnField.asset_amount: game_master_fee_var.load()}),
+                If(protocol_account_asset_balance.hasValue()).Then(
+                    InnerTxnBuilder.Next(),
+                    InnerTxnBuilder.SetFields({
+                        TxnField.type_enum: TxnType.AssetTransfer,
+                        TxnField.asset_receiver: protocol_account.address(),
+                        TxnField.note: Bytes("pay_protocol"),
+                        TxnField.xfer_asset: current_game_asset,
+                        TxnField.fee: Int(0),
+                        TxnField.asset_amount: protocol_fee_var.load()}),
+                ),
+                InnerTxnBuilder.Submit()
+            )
         ),
         App.globalPut(Bytes("Total_Game_Count"),
                       App.globalGet(Bytes("Total_Game_Count"))+Int(1)),
@@ -402,6 +572,7 @@ router.add_method_handler(get_user_guess_number)
 router.add_method_handler(generate_lucky_number)
 router.add_method_handler(get_lucky_number)
 router.add_method_handler(check_user_win_lottery)
+router.add_method_handler(opt_contract_to_ASA)
 router.add_method_handler(reset_game_params)
 router.add_method_handler(get_total_game_played)
 approval_program, clear_state_program, contract = router.compile_program(

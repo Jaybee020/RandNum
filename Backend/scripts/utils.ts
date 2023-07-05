@@ -22,7 +22,7 @@ import {
 import { decode, encode } from "@msgpack/msgpack";
 import { spawnSync } from "child_process";
 import { readFileSync } from "fs";
-import { API_KEY, appAddr, appId } from "./config";
+import { API_KEY, appAddr, appId, initRedis } from "./config";
 
 // // create client object to connect to sandbox's algod client
 
@@ -51,20 +51,23 @@ export function sleep(seconds: number) {
   return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
 }
 
-export function cache<T>(
+export async function cache<T>(
   key: string,
   callbackInputs: any[],
   expireIn: number,
   callbackFn: any,
   client: any
 ): Promise<T> {
+  client = await initRedis();
   async function run() {
     const cachedResponse = await client.get(key);
     if (cachedResponse) {
+      await client.disconnect();
       return JSON.parse(cachedResponse);
     }
     const result = await callbackFn(...callbackInputs);
     await client.set(key, JSON.stringify(result), { EX: expireIn * 60 });
+    await client.disconnect();
     return result;
   }
   return run();
@@ -168,6 +171,18 @@ export async function checkUserOptedIn(userAddr: string, appId: number) {
     response.push(...data["apps-local-states"]);
   }
   return response.find((localState: any) => localState.id == appId);
+}
+
+export async function checkContractOptedInToAsset(
+  assetId: number,
+  addr = appAddr
+) {
+  var data = await algoIndexer.lookupAccountAssets(addr).assetId(assetId).do();
+
+  if (data["assets"].length == 0) {
+    return false;
+  }
+  return true;
 }
 
 //add while loop to this to include next token

@@ -2,49 +2,53 @@
 txn NumAppArgs
 int 0
 ==
+bnz main_l24
+txna ApplicationArgs 0
+method "initiliaze_game_params(uint64,uint64,uint64,uint64,uint64,uint64,uint64,account,asset,txn)void"
+==
+bnz main_l23
+txna ApplicationArgs 0
+method "get_game_params()(uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64,address,uint64,uint64,uint64,uint64)"
+==
 bnz main_l22
 txna ApplicationArgs 0
-method "initiliaze_game_params(uint64,uint64,uint64,uint64,uint64,uint64,uint64,account,pay)void"
+method "enter_game(uint64,txn)void"
 ==
 bnz main_l21
 txna ApplicationArgs 0
-method "get_game_params()(uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64,uint64,address,uint64,uint64)"
+method "change_guess_number(uint64)void"
 ==
 bnz main_l20
 txna ApplicationArgs 0
-method "enter_game(uint64,pay)void"
+method "get_user_guess_number(account)uint64"
 ==
 bnz main_l19
 txna ApplicationArgs 0
-method "change_guess_number(uint64)void"
+method "generate_lucky_number(application)void"
 ==
 bnz main_l18
 txna ApplicationArgs 0
-method "get_user_guess_number(account)uint64"
+method "get_lucky_number()uint64"
 ==
 bnz main_l17
 txna ApplicationArgs 0
-method "generate_lucky_number(application)void"
+method "check_user_win_lottery(account,asset)bool"
 ==
 bnz main_l16
 txna ApplicationArgs 0
-method "get_lucky_number()uint64"
+method "opt_contract_to_ASA(account,asset)void"
 ==
 bnz main_l15
 txna ApplicationArgs 0
-method "check_user_win_lottery(account)bool"
+method "reset_game_params(account,account,account,asset)void"
 ==
 bnz main_l14
 txna ApplicationArgs 0
-method "reset_game_params(account,account,account)void"
-==
-bnz main_l13
-txna ApplicationArgs 0
 method "get_total_game_played()uint64"
 ==
-bnz main_l12
+bnz main_l13
 err
-main_l12:
+main_l13:
 txn OnCompletion
 int NoOp
 ==
@@ -53,16 +57,70 @@ int 0
 !=
 &&
 assert
-callsub gettotalgameplayed_8
-store 33
+callsub gettotalgameplayed_13
+store 42
 byte 0x151f7c75
-load 33
+load 42
 itob
 concat
 log
 int 1
 return
-main_l13:
+main_l14:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+txna ApplicationArgs 1
+int 0
+getbyte
+store 38
+txna ApplicationArgs 2
+int 0
+getbyte
+store 39
+txna ApplicationArgs 3
+int 0
+getbyte
+store 40
+txna ApplicationArgs 4
+int 0
+getbyte
+store 41
+load 38
+load 39
+load 40
+load 41
+callsub resetgameparams_14
+int 1
+return
+main_l15:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+txna ApplicationArgs 1
+int 0
+getbyte
+store 36
+txna ApplicationArgs 2
+int 0
+getbyte
+store 37
+load 36
+load 37
+callsub optcontracttoASA_5
+int 1
+return
+main_l16:
 txn OnCompletion
 int NoOp
 ==
@@ -79,70 +137,17 @@ txna ApplicationArgs 2
 int 0
 getbyte
 store 31
-txna ApplicationArgs 3
-int 0
-getbyte
-store 32
 load 30
 load 31
-load 32
-callsub resetgameparams_9
-int 1
-return
-main_l14:
-txn OnCompletion
-int NoOp
-==
-txn ApplicationID
-int 0
-!=
-&&
-assert
-txna ApplicationArgs 1
-int 0
-getbyte
-callsub checkuserwinlottery_6
-store 27
+callsub checkuserwinlottery_11
+store 32
 byte 0x151f7c75
 byte 0x00
 int 0
-load 27
+load 32
 setbit
 concat
 log
-int 1
-return
-main_l15:
-txn OnCompletion
-int NoOp
-==
-txn ApplicationID
-int 0
-!=
-&&
-assert
-callsub getluckynumber_7
-store 26
-byte 0x151f7c75
-load 26
-itob
-concat
-log
-int 1
-return
-main_l16:
-txn OnCompletion
-int NoOp
-==
-txn ApplicationID
-int 0
-!=
-&&
-assert
-txna ApplicationArgs 1
-int 0
-getbyte
-callsub generateluckynumber_5
 int 1
 return
 main_l17:
@@ -154,13 +159,10 @@ int 0
 !=
 &&
 assert
-txna ApplicationArgs 1
-int 0
-getbyte
-callsub getuserguessnumber_4
-store 24
+callsub getluckynumber_12
+store 29
 byte 0x151f7c75
-load 24
+load 29
 itob
 concat
 log
@@ -176,11 +178,47 @@ int 0
 &&
 assert
 txna ApplicationArgs 1
-btoi
-callsub changeguessnumber_3
+int 0
+getbyte
+callsub generateluckynumber_10
 int 1
 return
 main_l19:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+txna ApplicationArgs 1
+int 0
+getbyte
+callsub getuserguessnumber_9
+store 27
+byte 0x151f7c75
+load 27
+itob
+concat
+log
+int 1
+return
+main_l20:
+txn OnCompletion
+int NoOp
+==
+txn ApplicationID
+int 0
+!=
+&&
+assert
+txna ApplicationArgs 1
+btoi
+callsub changeguessnumber_8
+int 1
+return
+main_l21:
 txn OnCompletion
 int NoOp
 ==
@@ -199,22 +237,17 @@ int 0
 assert
 txna ApplicationArgs 1
 btoi
-store 22
+store 25
 txn GroupIndex
 int 1
 -
-store 23
-load 23
-gtxns TypeEnum
-int pay
-==
-assert
-load 22
-load 23
-callsub entergame_2
+store 26
+load 25
+load 26
+callsub entergame_7
 int 1
 return
-main_l20:
+main_l22:
 txn OnCompletion
 int NoOp
 ==
@@ -223,15 +256,15 @@ int 0
 !=
 &&
 assert
-callsub getgameparams_1
-store 9
+callsub getgameparams_6
+store 10
 byte 0x151f7c75
-load 9
+load 10
 concat
 log
 int 1
 return
-main_l21:
+main_l23:
 txn OnCompletion
 int NoOp
 ==
@@ -265,15 +298,14 @@ txna ApplicationArgs 8
 int 0
 getbyte
 store 7
+txna ApplicationArgs 9
+int 0
+getbyte
+store 8
 txn GroupIndex
 int 1
 -
-store 8
-load 8
-gtxns TypeEnum
-int pay
-==
-assert
+store 9
 load 0
 load 1
 load 2
@@ -283,49 +315,32 @@ load 5
 load 6
 load 7
 load 8
-callsub initiliazegameparams_0
+load 9
+callsub initiliazegameparams_4
 int 1
 return
-main_l22:
+main_l24:
 txn OnCompletion
 int NoOp
 ==
-bnz main_l32
+bnz main_l34
 txn OnCompletion
 int OptIn
 ==
-bnz main_l31
+bnz main_l33
 txn OnCompletion
 int CloseOut
 ==
-bnz main_l30
+bnz main_l32
 txn OnCompletion
 int UpdateApplication
 ==
-bnz main_l29
+bnz main_l31
 txn OnCompletion
 int DeleteApplication
 ==
-bnz main_l28
+bnz main_l30
 err
-main_l28:
-txn ApplicationID
-int 0
-!=
-assert
-int 0
-return
-main_l29:
-txn ApplicationID
-int 0
-!=
-assert
-txn Sender
-global CreatorAddress
-==
-assert
-int 1
-return
 main_l30:
 txn ApplicationID
 int 0
@@ -338,9 +353,27 @@ txn ApplicationID
 int 0
 !=
 assert
+txn Sender
+global CreatorAddress
+==
+assert
 int 1
 return
 main_l32:
+txn ApplicationID
+int 0
+!=
+assert
+int 0
+return
+main_l33:
+txn ApplicationID
+int 0
+!=
+assert
+int 1
+return
+main_l34:
 txn ApplicationID
 int 0
 ==
@@ -381,6 +414,9 @@ app_global_put
 byte "Players_Won"
 int 0
 app_global_put
+byte "Game_Asset"
+int 0
+app_global_put
 byte "Game_Master"
 global ZeroAddress
 app_global_put
@@ -390,17 +426,177 @@ app_global_put
 int 1
 return
 
+// handleAlgoDeposit
+handleAlgoDeposit_0:
+store 57
+store 56
+store 55
+store 54
+store 53
+load 53
+gtxns Receiver
+global CurrentApplicationAddress
+==
+load 53
+gtxns Sender
+txn Sender
+==
+&&
+load 53
+gtxns TypeEnum
+int pay
+==
+&&
+load 53
+gtxns Amount
+int 1000000
+>=
+&&
+load 54
+txnas Accounts
+balance
+load 54
+txnas Accounts
+min_balance
+-
+load 55
+load 57
+int 1
+-
+*
+load 56
+*
+>=
+&&
+load 53
+gtxns Note
+byte "init_game"
+==
+&&
+load 56
+int 1000000
+>=
+&&
+assert
+retsub
+
+// handleASADeposit
+handleASADeposit_1:
+store 63
+store 62
+store 61
+store 60
+store 59
+store 58
+load 59
+txnas Accounts
+load 63
+txnas Assets
+asset_holding_get AssetBalance
+store 65
+store 64
+load 65
+load 58
+gtxns TypeEnum
+int axfer
+==
+&&
+load 58
+gtxns XferAsset
+load 63
+txnas Assets
+==
+&&
+load 58
+gtxns Sender
+txn Sender
+==
+&&
+load 58
+gtxns AssetAmount
+int 1
+>=
+&&
+load 61
+int 1
+>=
+&&
+load 58
+gtxns AssetReceiver
+global CurrentApplicationAddress
+==
+&&
+load 64
+load 60
+load 62
+int 1
+-
+*
+load 61
+*
+>=
+&&
+load 58
+gtxns Note
+byte "init_game"
+==
+&&
+assert
+retsub
+
+// initiateASATransfer
+initiateASATransfer_2:
+store 73
+store 72
+store 71
+store 70
+itxn_begin
+int axfer
+itxn_field TypeEnum
+int 0
+itxn_field Fee
+load 72
+itxn_field AssetAmount
+load 70
+itxn_field AssetReceiver
+load 73
+itxn_field Note
+load 71
+itxn_field XferAsset
+itxn_submit
+retsub
+
+// initiateAlgoTransfer
+initiateAlgoTransfer_3:
+store 80
+store 79
+store 78
+itxn_begin
+int pay
+itxn_field TypeEnum
+load 78
+itxn_field Receiver
+load 79
+itxn_field Amount
+load 80
+itxn_field Note
+int 0
+itxn_field Fee
+itxn_submit
+retsub
+
 // initiliaze_game_params
-initiliazegameparams_0:
-store 42
-store 41
-store 40
-store 39
-store 38
-store 37
-store 36
-store 35
-store 34
+initiliazegameparams_4:
+store 52
+store 51
+store 50
+store 49
+store 48
+store 47
+store 46
+store 45
+store 44
+store 43
 byte "Ticketing_Start"
 app_global_get
 int 0
@@ -455,168 +651,213 @@ app_global_get
 int 0
 ==
 &&
-load 41
+byte "Game_Asset"
+app_global_get
+int 0
+==
+&&
+load 50
 txnas Accounts
 global CurrentApplicationAddress
 ==
 &&
-load 42
-gtxns Receiver
-global CurrentApplicationAddress
-==
-&&
-load 42
-gtxns Sender
-txn Sender
-==
-&&
-load 42
-gtxns TypeEnum
-int pay
-==
-&&
-load 42
-gtxns Amount
-int 1000000
->=
-&&
-load 42
-gtxns Amount
-load 41
-txnas Accounts
-balance
-+
-load 41
-txnas Accounts
-min_balance
--
-load 40
-load 38
-int 1
--
-*
-load 36
-*
->
-&&
-load 42
-gtxns Note
-byte "init_game"
-==
-&&
-load 34
+load 43
 global LatestTimestamp
 int 180
 +
 >
 &&
-load 35
+load 43
+global LatestTimestamp
+int 3600
++
+<
+&&
+load 44
 int 900
 >
 &&
-load 36
-int 1000000
->=
+load 44
+int 43200
+<
 &&
-load 39
+load 48
 int 99
 >
 &&
-load 40
+load 49
 int 0
 >
 &&
-load 38
+load 47
 int 1
 >
 &&
-load 37
-load 34
-load 35
+load 46
+load 43
+load 44
 +
 int 900
 +
 >
 &&
+load 46
+load 43
+load 44
++
+int 3600
++
+<
+&&
 assert
+load 52
+gtxns TypeEnum
+int pay
+==
+load 52
+gtxns TypeEnum
+int axfer
+==
+||
+assert
+load 52
+gtxns TypeEnum
+int pay
+==
+bnz initiliazegameparams_4_l2
+load 52
+load 50
+load 49
+load 45
+load 47
+load 51
+callsub handleASADeposit_1
+byte "Game_Asset"
+load 51
+txnas Assets
+app_global_put
+byte "Game_Master_Deposit"
+load 52
+gtxns AssetAmount
+app_global_put
+b initiliazegameparams_4_l3
+initiliazegameparams_4_l2:
+load 52
+load 50
+load 49
+load 45
+load 47
+callsub handleAlgoDeposit_0
+byte "Game_Master_Deposit"
+load 52
+gtxns Amount
+app_global_put
+initiliazegameparams_4_l3:
 byte "Ticketing_Start"
-load 34
+load 43
 app_global_put
 byte "Ticketing_Duration"
-load 35
+load 44
 app_global_put
 byte "Withdrawal_Start"
-load 37
+load 46
 app_global_put
 byte "Ticket_Fee"
-load 36
+load 45
 app_global_put
 byte "Win_Multiplier"
-load 38
+load 47
 app_global_put
 byte "Max_Players_Allowed"
-load 40
+load 49
 app_global_put
 byte "Max_Guess_Number"
-load 39
+load 48
 app_global_put
 byte "Game_Master"
 txn Sender
 app_global_put
-byte "Game_Master_Deposit"
-load 42
-gtxns Amount
-app_global_put
+retsub
+
+// opt_contract_to_ASA
+optcontracttoASA_5:
+store 67
+store 66
+load 66
+txnas Accounts
+global CurrentApplicationAddress
+==
+assert
+load 66
+txnas Accounts
+load 67
+txnas Assets
+asset_holding_get AssetBalance
+store 69
+store 68
+load 69
+!
+bz optcontracttoASA_5_l2
+global CurrentApplicationAddress
+load 67
+txnas Assets
+int 0
+byte "opt_in"
+callsub initiateASATransfer_2
+optcontracttoASA_5_l2:
 retsub
 
 // get_game_params
-getgameparams_1:
+getgameparams_6:
 byte "Ticketing_Start"
 app_global_get
-store 10
+store 11
 byte "Ticketing_Duration"
 app_global_get
-store 11
+store 12
 byte "Withdrawal_Start"
 app_global_get
-store 12
+store 13
 byte "Ticket_Fee"
 app_global_get
-store 13
+store 14
 byte "Lucky_Number"
 app_global_get
-store 14
+store 15
 byte "Players_Ticket_Bought"
 app_global_get
-store 15
+store 16
 byte "Players_Ticket_Checked"
 app_global_get
-store 16
+store 17
 byte "Total_Game_Count"
 app_global_get
-store 21
+store 24
 byte "Game_Master"
 app_global_get
-store 17
-load 17
+store 18
+load 18
 len
 int 32
 ==
 assert
 byte "Win_Multiplier"
 app_global_get
-store 18
+store 19
 byte "Max_Guess_Number"
 app_global_get
-store 19
+store 20
 byte "Max_Players_Allowed"
 app_global_get
-store 20
-load 10
-itob
+store 21
+byte "Players_Won"
+app_global_get
+store 22
+byte "Game_Asset"
+app_global_get
+store 23
 load 11
 itob
-concat
 load 12
 itob
 concat
@@ -629,7 +870,7 @@ concat
 load 15
 itob
 concat
-load 18
+load 16
 itob
 concat
 load 19
@@ -638,63 +879,46 @@ concat
 load 20
 itob
 concat
-load 17
-concat
-load 16
+load 21
 itob
 concat
-load 21
+load 18
+concat
+load 17
+itob
+concat
+load 22
+itob
+concat
+load 23
+itob
+concat
+load 24
 itob
 concat
 retsub
 
 // enter_game
-entergame_2:
-store 44
-store 43
+entergame_7:
+store 75
+store 74
 byte "Players_Ticket_Bought"
 app_global_get
 byte "Max_Players_Allowed"
 app_global_get
 <
-load 43
+load 74
 int 0
 >
 &&
-load 43
+load 74
 byte "Max_Guess_Number"
 app_global_get
 <=
 &&
-load 44
-gtxns Receiver
-global CurrentApplicationAddress
-==
-&&
-load 44
-gtxns Sender
-txn Sender
-==
-&&
-load 44
-gtxns TypeEnum
-int pay
-==
-&&
-load 44
+load 75
 gtxns Note
 byte "enter_game"
-==
-&&
-load 44
-gtxns Amount
-byte "Ticket_Fee"
-app_global_get
-==
-&&
-load 44
-gtxns CloseRemainderTo
-global ZeroAddress
 ==
 &&
 global LatestTimestamp
@@ -706,24 +930,67 @@ app_global_get
 <=
 &&
 assert
+load 75
+gtxns TypeEnum
+int pay
+==
+load 75
+gtxns TypeEnum
+int axfer
+==
+||
+assert
+byte "Game_Asset"
+app_global_get
+int 0
+==
+bnz entergame_7_l6
+load 75
+gtxns AssetReceiver
+global CurrentApplicationAddress
+==
+assert
+load 75
+gtxns Sender
+txn Sender
+==
+assert
+load 75
+gtxns TypeEnum
+int axfer
+==
+assert
+load 75
+gtxns AssetAmount
+byte "Ticket_Fee"
+app_global_get
+==
+assert
+load 75
+gtxns XferAsset
+byte "Game_Asset"
+app_global_get
+==
+assert
+entergame_7_l2:
 txn Sender
 byte "checked"
 app_local_get
-bnz entergame_2_l3
-entergame_2_l1:
+bnz entergame_7_l5
+entergame_7_l3:
 txn Sender
 byte "guess_number"
 app_local_get
 !
-bz entergame_2_l4
+bz entergame_7_l7
 byte "Players_Ticket_Bought"
 byte "Players_Ticket_Bought"
 app_global_get
 int 1
 +
 app_global_put
-b entergame_2_l4
-entergame_2_l3:
+b entergame_7_l7
+entergame_7_l5:
 txn Sender
 byte "checked"
 int 0
@@ -732,21 +999,49 @@ txn Sender
 byte "guess_number"
 int 0
 app_local_put
-b entergame_2_l1
-entergame_2_l4:
+b entergame_7_l3
+entergame_7_l6:
+load 75
+gtxns Receiver
+global CurrentApplicationAddress
+==
+assert
+load 75
+gtxns Sender
+txn Sender
+==
+assert
+load 75
+gtxns TypeEnum
+int pay
+==
+assert
+load 75
+gtxns Amount
+byte "Ticket_Fee"
+app_global_get
+==
+assert
+load 75
+gtxns CloseRemainderTo
+global ZeroAddress
+==
+assert
+b entergame_7_l2
+entergame_7_l7:
 txn Sender
 byte "guess_number"
-load 43
+load 74
 app_local_put
 retsub
 
 // change_guess_number
-changeguessnumber_3:
-store 45
-load 45
+changeguessnumber_8:
+store 76
+load 76
 int 0
 >
-load 45
+load 76
 byte "Max_Guess_Number"
 app_global_get
 <=
@@ -771,28 +1066,28 @@ app_local_get
 assert
 txn Sender
 byte "guess_number"
-load 45
+load 76
 app_local_put
 retsub
 
 // get_user_guess_number
-getuserguessnumber_4:
-store 25
-load 25
+getuserguessnumber_9:
+store 28
+load 28
 txnas Accounts
 byte "guess_number"
 app_local_get
 assert
-load 25
+load 28
 txnas Accounts
 byte "guess_number"
 app_local_get
 retsub
 
 // generate_lucky_number
-generateluckynumber_5:
-store 46
-load 46
+generateluckynumber_10:
+store 77
+load 77
 txnas Applications
 int 110096026
 ==
@@ -813,7 +1108,7 @@ assert
 itxn_begin
 int appl
 itxn_field TypeEnum
-load 46
+load 77
 txnas Applications
 itxn_field ApplicationID
 int NoOp
@@ -853,13 +1148,14 @@ app_global_put
 retsub
 
 // check_user_win_lottery
-checkuserwinlottery_6:
-store 28
+checkuserwinlottery_11:
+store 34
+store 33
 global LatestTimestamp
 byte "Withdrawal_Start"
 app_global_get
 >=
-load 28
+load 33
 txnas Accounts
 byte "guess_number"
 app_local_get
@@ -868,21 +1164,21 @@ byte "Lucky_Number"
 app_global_get
 &&
 assert
-load 28
+load 33
 txnas Accounts
 byte "checked"
 app_local_get
-bnz checkuserwinlottery_6_l4
-load 28
+bnz checkuserwinlottery_11_l7
+load 33
 txnas Accounts
 byte "guess_number"
 app_local_get
 byte "Lucky_Number"
 app_global_get
 ==
-bnz checkuserwinlottery_6_l3
-checkuserwinlottery_6_l2:
-load 28
+bnz checkuserwinlottery_11_l3
+checkuserwinlottery_11_l2:
+load 33
 txnas Accounts
 byte "checked"
 int 1
@@ -893,7 +1189,7 @@ app_global_get
 int 1
 +
 app_global_put
-load 28
+load 33
 txnas Accounts
 byte "guess_number"
 app_local_get
@@ -902,35 +1198,52 @@ app_global_get
 ==
 !
 !
-store 29
-b checkuserwinlottery_6_l5
-checkuserwinlottery_6_l3:
-itxn_begin
-int pay
-itxn_field TypeEnum
-load 28
-txnas Accounts
-itxn_field Receiver
-byte "pay_winner"
-itxn_field Note
+store 35
+b checkuserwinlottery_11_l8
+checkuserwinlottery_11_l3:
+byte "Game_Asset"
+app_global_get
 int 0
-itxn_field Fee
+==
+bnz checkuserwinlottery_11_l6
+load 34
+txnas Assets
+byte "Game_Asset"
+app_global_get
+==
+assert
+load 33
+txnas Accounts
+load 34
+txnas Assets
 byte "Ticket_Fee"
 app_global_get
 byte "Win_Multiplier"
 app_global_get
 *
-itxn_field Amount
-itxn_submit
+byte "pay_winner"
+callsub initiateASATransfer_2
+checkuserwinlottery_11_l5:
 byte "Players_Won"
 byte "Players_Won"
 app_global_get
 int 1
 +
 app_global_put
-b checkuserwinlottery_6_l2
-checkuserwinlottery_6_l4:
-load 28
+b checkuserwinlottery_11_l2
+checkuserwinlottery_11_l6:
+load 33
+txnas Accounts
+byte "Ticket_Fee"
+app_global_get
+byte "Win_Multiplier"
+app_global_get
+*
+byte "pay_winner"
+callsub initiateAlgoTransfer_3
+b checkuserwinlottery_11_l5
+checkuserwinlottery_11_l7:
+load 33
 txnas Accounts
 byte "guess_number"
 app_local_get
@@ -939,42 +1252,43 @@ app_global_get
 ==
 !
 !
-store 29
-checkuserwinlottery_6_l5:
-load 29
+store 35
+checkuserwinlottery_11_l8:
+load 35
 retsub
 
 // get_lucky_number
-getluckynumber_7:
+getluckynumber_12:
 byte "Lucky_Number"
 app_global_get
 retsub
 
 // get_total_game_played
-gettotalgameplayed_8:
+gettotalgameplayed_13:
 byte "Total_Game_Count"
 app_global_get
 retsub
 
 // reset_game_params
-resetgameparams_9:
-store 49
-store 48
-store 47
+resetgameparams_14:
+store 84
+store 83
+store 82
+store 81
 txn Sender
 global CreatorAddress
 ==
-load 47
+load 81
 txnas Accounts
 global CurrentApplicationAddress
 ==
 &&
-load 49
+load 83
 txnas Accounts
 global CreatorAddress
 ==
 &&
-load 48
+load 82
 txnas Accounts
 byte "Game_Master"
 app_global_get
@@ -987,26 +1301,6 @@ app_global_get
 ==
 &&
 assert
-load 47
-txnas Accounts
-balance
-load 47
-txnas Accounts
-min_balance
--
-int 1000000
->=
-bz resetgameparams_9_l11
-load 47
-txnas Accounts
-balance
-load 47
-txnas Accounts
-min_balance
--
-int 20
-/
-store 50
 byte "Game_Master_Deposit"
 app_global_get
 byte "Ticket_Fee"
@@ -1020,18 +1314,13 @@ byte "Max_Players_Allowed"
 app_global_get
 *
 /
-store 52
-load 52
+store 91
+load 91
 byte "Players_Ticket_Bought"
 app_global_get
 >
-bnz resetgameparams_9_l10
-resetgameparams_9_l2:
-load 50
-int 250000000
->
-bnz resetgameparams_9_l9
-resetgameparams_9_l3:
+bnz resetgameparams_14_l17
+resetgameparams_14_l1:
 byte "Players_Won"
 app_global_get
 byte "Win_Multiplier"
@@ -1043,97 +1332,204 @@ app_global_get
 byte "Game_Master_Deposit"
 app_global_get
 >=
-bnz resetgameparams_9_l8
+bnz resetgameparams_14_l16
 byte "Game_Master_Deposit"
 app_global_get
 byte "Players_Won"
 app_global_get
 byte "Win_Multiplier"
 app_global_get
+int 1
+-
 *
 byte "Ticket_Fee"
 app_global_get
 *
 -
-store 53
-resetgameparams_9_l5:
-load 53
-load 52
+store 92
+resetgameparams_14_l3:
+load 92
+load 91
 byte "Players_Won"
 app_global_get
 -
 byte "Ticket_Fee"
 app_global_get
 *
-int 4
+int 2
 /
 +
-store 51
-load 51
-load 47
+store 90
+byte "Game_Asset"
+app_global_get
+int 0
+==
+bnz resetgameparams_14_l10
+load 81
+txnas Accounts
+load 84
+txnas Assets
+asset_holding_get AssetBalance
+store 86
+store 85
+load 83
+txnas Accounts
+load 84
+txnas Assets
+asset_holding_get AssetBalance
+store 88
+store 87
+byte "Game_Asset"
+app_global_get
+load 84
+txnas Assets
+==
+assert
+load 86
+assert
+load 85
+int 20
+/
+store 89
+load 90
+load 85
+load 89
+-
+>
+bnz resetgameparams_14_l9
+resetgameparams_14_l5:
+load 90
+int 0
+>
+bz resetgameparams_14_l18
+itxn_begin
+int axfer
+itxn_field TypeEnum
+load 82
+txnas Accounts
+itxn_field AssetReceiver
+byte "pay_game_master"
+itxn_field Note
+byte "Game_Asset"
+app_global_get
+itxn_field XferAsset
+int 0
+itxn_field Fee
+load 90
+itxn_field AssetAmount
+load 88
+bnz resetgameparams_14_l8
+resetgameparams_14_l7:
+itxn_submit
+b resetgameparams_14_l18
+resetgameparams_14_l8:
+itxn_next
+int axfer
+itxn_field TypeEnum
+load 83
+txnas Accounts
+itxn_field AssetReceiver
+byte "pay_protocol"
+itxn_field Note
+byte "Game_Asset"
+app_global_get
+itxn_field XferAsset
+int 0
+itxn_field Fee
+load 89
+itxn_field AssetAmount
+b resetgameparams_14_l7
+resetgameparams_14_l9:
+load 85
+load 89
+-
+store 90
+b resetgameparams_14_l5
+resetgameparams_14_l10:
+load 81
 txnas Accounts
 balance
-load 47
+load 81
 txnas Accounts
 min_balance
 -
-load 50
+int 20
+/
+store 89
+load 89
+int 500000000
+>
+bnz resetgameparams_14_l15
+resetgameparams_14_l11:
+load 90
+load 81
+txnas Accounts
+balance
+load 81
+txnas Accounts
+min_balance
+-
+load 89
 -
 >
-bnz resetgameparams_9_l7
-resetgameparams_9_l6:
+bnz resetgameparams_14_l14
+resetgameparams_14_l12:
+load 90
+int 0
+>
+bz resetgameparams_14_l18
 itxn_begin
 int pay
 itxn_field TypeEnum
-load 49
+load 83
 txnas Accounts
 itxn_field Receiver
 byte "pay_protocol"
 itxn_field Note
 int 0
 itxn_field Fee
-load 50
+load 89
 itxn_field Amount
 itxn_next
 int pay
 itxn_field TypeEnum
-load 48
+load 82
 txnas Accounts
 itxn_field Receiver
 byte "pay_game_master"
 itxn_field Note
 int 0
 itxn_field Fee
-load 51
+load 90
 itxn_field Amount
 itxn_submit
-b resetgameparams_9_l11
-resetgameparams_9_l7:
-load 47
+b resetgameparams_14_l18
+resetgameparams_14_l14:
+load 81
 txnas Accounts
 balance
-load 47
+load 81
 txnas Accounts
 min_balance
 -
-load 50
+load 89
 -
-store 51
-b resetgameparams_9_l6
-resetgameparams_9_l8:
-int 1000
-store 53
-b resetgameparams_9_l5
-resetgameparams_9_l9:
-int 250000000
-store 50
-b resetgameparams_9_l3
-resetgameparams_9_l10:
+store 90
+b resetgameparams_14_l12
+resetgameparams_14_l15:
+int 500000000
+store 89
+b resetgameparams_14_l11
+resetgameparams_14_l16:
+int 0
+store 92
+b resetgameparams_14_l3
+resetgameparams_14_l17:
 byte "Players_Ticket_Bought"
 app_global_get
-store 52
-b resetgameparams_9_l2
-resetgameparams_9_l11:
+store 91
+b resetgameparams_14_l1
+resetgameparams_14_l18:
 byte "Total_Game_Count"
 byte "Total_Game_Count"
 app_global_get
@@ -1171,6 +1567,9 @@ byte "Players_Ticket_Checked"
 int 0
 app_global_put
 byte "Players_Won"
+int 0
+app_global_put
+byte "Game_Asset"
 int 0
 app_global_put
 byte "Game_Master"

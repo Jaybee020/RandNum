@@ -105,7 +105,7 @@ router.get("/allLottoIdHistory", (req, res) => __awaiter(void 0, void 0, void 0,
 router.get("/currentGameParams", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const key = "Current Game Parameter";
-        const data = yield (0, utils_1.cache)(key, [], 1, helpers_1.getCurrentGameParam, app_1.client);
+        const data = yield (0, utils_1.cache)(key, [], 1.5, helpers_1.getCurrentGameParam, app_1.client);
         if (!data) {
             return res.status(400).send({
                 status: false,
@@ -151,14 +151,14 @@ router.post("/changePlayerGuessNumber", (req, res) => __awaiter(void 0, void 0, 
 router.post("/endCurrentAndCreateNewGame", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
-        const { ticketingStart, ticketingDuration, withdrawalStart, ticketFee, winMultiplier, maxPlayersAllowed, maxGuessNumber, gameMasterAddr, } = req.body;
+        const { ticketingStart, ticketingDuration, withdrawalStart, ticketFee, winMultiplier, maxPlayersAllowed, maxGuessNumber, gameMasterAddr, assetId, } = req.body;
         if (!gameMasterAddr) {
             return res.status(400).send({
                 status: false,
                 data: "An error occured,check your parameters and retry",
             });
         }
-        const data = yield (0, helpers_1.endCurrentAndCreateNewGame)(ticketingStart, ticketingDuration, withdrawalStart, ticketFee, winMultiplier, maxPlayersAllowed, maxGuessNumber, gameMasterAddr);
+        const data = yield (0, helpers_1.endCurrentAndCreateNewGame)(ticketingStart, ticketingDuration, withdrawalStart, ticketFee, winMultiplier, maxPlayersAllowed, maxGuessNumber, gameMasterAddr, assetId);
         if (data.newGame.status) {
             return res.status(200).send({
                 status: true,
@@ -186,8 +186,11 @@ router.post("/enterCurrentGame", (req, res) => __awaiter(void 0, void 0, void 0,
                 message: "Please provide the required fields",
             });
         }
-        const ticketFee = (yield (0, helpers_1.getCurrentGameParam)()).ticketFee;
-        const data = yield (0, lottoCall_1.enterCurrentGame)(playerAddr, Number(guessNumber), Number(ticketFee));
+        const key = "Current Game Parameter";
+        const gameParams = yield (0, utils_1.cache)(key, [], 1.5, helpers_1.getCurrentGameParam, app_1.client);
+        const ticketFee = gameParams.ticketFee;
+        const gameAsset = gameParams.game_asset;
+        const data = yield (0, lottoCall_1.enterCurrentGame)(playerAddr, Number(guessNumber), Number(ticketFee), gameAsset);
         return res.status(200).send({
             status: true,
             data: data.map(utils_1.encodeTxn),
@@ -272,7 +275,9 @@ router.post("/checkUserWin", (req, res) => __awaiter(void 0, void 0, void 0, fun
             message: "Please provide the required fields",
         });
     }
-    const data = yield (0, helpers_1.checkPlayerWinStatus)(playerAddr);
+    const key = "Current Game Parameter";
+    const currentGameParams = yield (0, utils_1.cache)(key, [], 1, helpers_1.getCurrentGameParam, app_1.client);
+    const data = yield (0, helpers_1.checkPlayerWinStatus)(playerAddr, currentGameParams.game_asset);
     if (!data) {
         return res.status(400).send({
             status: false,

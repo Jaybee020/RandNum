@@ -56,7 +56,10 @@ newGameQueue.process(function (job, done) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const data = yield (0, helpers_1.endCurrentAndCreateNewGame)();
+            const assets = [0, 10458941];
+            const assetindex = Math.floor(Math.random() * 10) % 2;
+            console.log("asset used is ", assets[assetindex]);
+            const data = yield (0, helpers_1.endCurrentAndCreateNewGame)(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, assets[assetindex]);
             console.log(`New Game status:${data.newGame.status}. New Game Txn Length:${(_a = data.newGame.txns) === null || _a === void 0 ? void 0 : _a.length}`);
             if (data.newGame.status) {
                 const initGameTxns = data.newGame.txns;
@@ -73,7 +76,7 @@ newGameQueue.process(function (job, done) {
                     }
                 }
                 const key = "Current Game Parameter";
-                yield (0, utils_1.cache)(key, [], 2, helpers_1.getCurrentGameParam, app_1.client);
+                yield (0, utils_1.cache)(key, [], 1, helpers_1.getCurrentGameParam, app_1.client);
             }
             done();
         }

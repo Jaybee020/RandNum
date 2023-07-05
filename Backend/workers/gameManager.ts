@@ -54,7 +54,20 @@ if (MODE == "PRODUCTION") {
 
 newGameQueue.process(async function (job, done) {
   try {
-    const data = await endCurrentAndCreateNewGame();
+    const assets = [0, 10458941];
+    const assetindex = Math.floor(Math.random() * 10) % 2;
+    console.log("asset used is ", assets[assetindex]);
+    const data = await endCurrentAndCreateNewGame(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      assets[assetindex]
+    );
     console.log(
       `New Game status:${data.newGame.status}. New Game Txn Length:${data.newGame.txns?.length}`
     );
@@ -72,7 +85,7 @@ newGameQueue.process(async function (job, done) {
         }
       }
       const key = "Current Game Parameter";
-      await cache<GameParams>(key, [], 2, getCurrentGameParam, client);
+      await cache<GameParams>(key, [], 1, getCurrentGameParam, client);
     }
     done();
   } catch (error: any) {
